@@ -1,0 +1,247 @@
+/* ==========================================================================
+   REFORGE — Design tokens & base styles
+
+   Palette: this is an operational data-quality tool, not a marketing page,
+   so the palette is built around legibility and fast status scanning
+   rather than a "hero" moment. Slate for structure, a single teal accent
+   (distinct from the common violet/terracotta AI-tool defaults) for
+   interactive elements, and the three semantic status colors doing the
+   actual communicative work (they ARE the content here).
+   ========================================================================== */
+
+:root {
+  --ink: #1c2430;
+  --ink-soft: #4b5563;
+  --paper: #f7f8fa;
+  --surface: #ffffff;
+  --line: #e2e5ea;
+
+  --accent: #0f766e;      /* teal - links, primary actions, chart bars */
+  --accent-soft: #ccfbf1;
+
+  --valid: #15803d;
+  --valid-bg: #dcfce7;
+  --suspicious: #b45309;
+  --suspicious-bg: #fef3c7;
+  --invalid: #b91c1c;
+  --invalid-bg: #fee2e2;
+  --pending: #52525b;
+  --pending-bg: #e4e4e7;
+
+  --radius: 6px;
+  --font-body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell { display: flex; flex-direction: column; min-height: 100%; }
+
+/* ---- Navbar ---- */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 5px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.navbar-links { display: flex; gap: 1.5rem; }
+.nav-link {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.92rem;
+  padding: 0.3rem 0;
+  border-bottom: 2px solid transparent;
+}
+.nav-link:hover { color: var(--ink); }
+.nav-link-active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* ---- Layout ---- */
+.app-main { flex: 1; padding: 1.75rem; max-width: 1080px; width: 100%; margin: 0 auto; }
+.page-title { font-size: 1.4rem; font-weight: 600; margin: 0 0 0.25rem; }
+.muted { color: var(--ink-soft); font-size: 0.92rem; }
+.error-text { color: var(--invalid); }
+
+/* ---- Cards ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.4rem;
+  margin-top: 1.25rem;
+}
+.card-title { font-size: 1rem; font-weight: 600; margin: 0 0 0.9rem; }
+
+/* ---- Stat grid ---- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ink-soft);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+.stat-card-value { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 600; }
+.stat-card-label { color: var(--ink-soft); font-size: 0.82rem; margin-top: 0.2rem; }
+.stat-card-valid { border-left-color: var(--valid); }
+.stat-card-suspicious { border-left-color: var(--suspicious); }
+.stat-card-invalid { border-left-color: var(--invalid); }
+.stat-card-pending { border-left-color: var(--pending); }
+
+/* ---- Tables ---- */
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0.6rem;
+}
+.table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); }
+.table tbody tr:last-child td { border-bottom: none; }
+.row-highlight { background: var(--accent-soft); }
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.badge-valid { background: var(--valid-bg); color: var(--valid); }
+.badge-suspicious { background: var(--suspicious-bg); color: var(--suspicious); }
+.badge-invalid { background: var(--invalid-bg); color: var(--invalid); }
+.badge-pending { background: var(--pending-bg); color: var(--pending); }
+.badge-review-pending { background: var(--pending-bg); color: var(--pending); }
+.badge-review-approved { background: var(--valid-bg); color: var(--valid); }
+.badge-review-rejected { background: var(--invalid-bg); color: var(--invalid); }
+.badge-review-corrected { background: var(--accent-soft); color: var(--accent); }
+
+/* ---- Filter row ---- */
+.filter-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.1rem; }
+.filter-label { font-size: 0.9rem; color: var(--ink-soft); }
+.select, .input, .textarea {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}
+.textarea { width: 100%; resize: vertical; }
+
+/* ---- Links ---- */
+.link-small { color: var(--accent); text-decoration: none; font-size: 0.88rem; }
+.link-small:hover { text-decoration: underline; }
+
+/* ---- Evidence ---- */
+.evidence-item {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--line);
+}
+.evidence-item p { margin: 0.3rem 0 0; font-size: 0.88rem; color: var(--ink-soft); }
+.evidence-triggered { border-left: 3px solid var(--invalid); background: #fff8f8; }
+.evidence-clear { border-left: 3px solid var(--valid); }
+
+/* ---- Detail grid ---- */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+.detail-label { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 0.15rem; }
+
+/* ---- Forms & actions ---- */
+.form-row { margin-bottom: 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.form-row label { font-size: 0.85rem; color: var(--ink-soft); }
+.action-row { display: flex; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.btn {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn-approve { background: var(--valid); color: white; }
+.btn-reject { background: var(--invalid); color: white; }
+.btn-neutral { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.correct-form {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+/* ---- Timeline (audit trail) ---- */
+.timeline { display: flex; flex-direction: column; }
+.timeline-entry { display: flex; gap: 0.9rem; padding-bottom: 1.1rem; }
+.timeline-marker {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 0.4rem;
+  flex-shrink: 0;
+}
+.timeline-content { flex: 1; }
+.timeline-header { font-size: 0.92rem; }
+.details-json {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 640px) {
+  .app-main { padding: 1rem; }
+  .navbar { padding: 0.75rem 1rem; }
+}
