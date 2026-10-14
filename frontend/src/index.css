@@ -255,7 +255,99 @@ body {
   margin-top: 0.4rem;
 }
 
+/* ---- Badges & Tags ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-success { background: var(--valid-bg); color: var(--valid); }
+.badge-warning { background: var(--suspicious-bg); color: var(--suspicious); }
+.badge-danger { background: var(--invalid-bg); color: var(--invalid); }
+.badge-info { background: #e0f2fe; color: #0369a1; }
+.badge-neutral { background: var(--pending-bg); color: var(--pending); }
+
+/* ---- Category Pills ---- */
+.pill-agree {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  background: var(--valid-bg);
+  color: var(--valid);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.pill-disagree {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* ---- Diff Viewer ---- */
+.diff-viewer {
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: var(--radius);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.diff-line-add { color: #4ade80; background: rgba(74, 222, 128, 0.1); display: block; }
+.diff-line-del { color: #f87171; background: rgba(248, 113, 113, 0.1); display: block; }
+.diff-line-info { color: #94a3b8; }
+
+/* ---- System Banner & Status Cards ---- */
+.system-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+  font-size: 0.86rem;
+}
+.system-banner-group {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.metrics-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.metrics-comparison-table th,
+.metrics-comparison-table td {
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.metrics-comparison-table tr:hover {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.highlight-row {
+  background: #f0fdfa !important;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .app-main { padding: 1rem; }
   .navbar { padding: 0.75rem 1rem; }
+  .system-banner { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
 }
+
