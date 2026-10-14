@@ -1,0 +1,24 @@
+{
+  "active_model_key": "isolation_forest:v1.0.0",
+  "previous_model_key": null,
+  "models": {
+    "isolation_forest:v1.0.0": {
+      "model_name": "isolation_forest",
+      "version": "v1.0.0",
+      "algorithm": "IsolationForest",
+      "status": "active",
+      "feature_schema_version": "v1.0.0",
+      "artifact_filename": "isolation_forest_v1.0.0.joblib",
+      "created_at": "2026-10-14T15:33:16.289936+00:00",
+      "hyperparameters": {
+        "n_estimators": 100,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_samples": "auto"
+      },
+      "metrics": {
+        "baseline_samples": 300
+      }
+    }
+  }
+}
