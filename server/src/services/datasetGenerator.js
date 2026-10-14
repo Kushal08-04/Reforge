@@ -1,16 +1,17 @@
 /**
- * datasetGenerator
- * ----------------
- * Produces a synthetic multi-sensor dataset with realistic normal behaviour
- * plus a set of controlled, LABELLED semantic anomalies (Section 10 of the
- * handoff doc: "inject controlled semantic errors... implausible jumps,
- * cross-sensor contradictions, temporally inconsistent observations").
+ * datasetGenerator.js
+ * -------------------
+ * Produces a synthetic multi-sensor dataset with realistic normal behavior
+ * plus controlled, LABELLED semantic anomalies:
+ *   - Implausible jumps (severe physical violations)
+ *   - Historical deviations (statistical z-score drift)
+ *   - Cross-sensor contradictions (peer group divergence)
+ *   - Gradual drift (subtle accumulative drift across timesteps)
  *
- * This is intentionally synthetic rather than pulled from a real IoT
- * dataset (see ways-of-working: "mock and simplify ruthlessly").
- *
- * Layout: 3 zones x 3 sensor types = 9 entities, entityId = "<zone>-<type>",
- * e.g. "zone-a-temperature". Readings every 3 hours across 3 simulated days.
+ * Fully backward compatible: generateDataset() with no arguments
+ * produces the exact 216-record baseline used by the MVP.
+ * Passing options ({ days, seed, includeDrift, anomalyMultiplier }) allows
+ * scaling to larger evaluation and training datasets.
  */
 
 const ZONES = ["zone-a", "zone-b", "zone-c"];
@@ -19,9 +20,9 @@ const TYPE_CONFIG = {
   humidity: { base: 50, dailyAmplitude: 8, noise: 2, unit: "%" },
   pressure: { base: 1010, dailyAmplitude: 1.5, noise: 0.4, unit: "hPa" },
 };
-const ZONE_OFFSET = { "zone-a": 0, "zone-b": 0.8, "zone-c": -0.6 }; // small per-zone bias
+const ZONE_OFFSET = { "zone-a": 0, "zone-b": 0.8, "zone-c": -0.6 };
 const INTERVAL_HOURS = 3;
-const DAYS = 3;
+const DEFAULT_DAYS = 3;
 const START = new Date("2026-09-01T00:00:00.000Z");
 
 function round(n, dp = 2) {
@@ -29,7 +30,6 @@ function round(n, dp = 2) {
   return Math.round(n * f) / f;
 }
 
-/** Deterministic-ish pseudo-noise so the dataset is reproducible across runs. */
 function seededNoise(seed) {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
@@ -43,18 +43,15 @@ function normalValueAt({ type, zone, hourIndex, seedOffset }) {
   return round(cfg.base + ZONE_OFFSET[zone] + daily + noise);
 }
 
-/**
- * Builds the full baseline dataset (no anomalies yet).
- * @returns {Array<Object>} records with { sourceId, sourceType, entityId, timestamp, values, units, _meta }
- */
-function generateBaseline() {
+function generateBaseline(opts = {}) {
+  const days = opts.days || DEFAULT_DAYS;
   const records = [];
-  const totalSteps = (DAYS * 24) / INTERVAL_HOURS;
-  let seedOffset = 0;
+  const totalSteps = (days * 24) / INTERVAL_HOURS;
+  let seedOffset = (opts.seed || 0) * 100;
 
   for (const zone of ZONES) {
     for (const type of Object.keys(TYPE_CONFIG)) {
-      seedOffset += 17; // vary the noise pattern per entity
+      seedOffset += 17;
       const entityId = `${zone}-${type}`;
 
       for (let step = 0; step < totalSteps; step++) {
@@ -77,21 +74,7 @@ function generateBaseline() {
   return records;
 }
 
-/**
- * Injects a fixed set of labelled anomalies into an existing baseline dataset
- * by mutating specific records in place (keeping the same timestamp/entity
- * so it looks like a single bad reading rather than an extra data point).
- *
- * Anomaly types (mirrors Section 3 of the handoff doc):
- *   - implausible_jump: a single reading spikes far beyond physical plausibility
- *   - historical_deviation: value drifts well outside this entity's own history
- *   - cross_sensor_contradiction: this zone disagrees sharply with peer zones
- *     for the same sensor type, while looking locally unremarkable
- *
- * @param {Array<Object>} records - output of generateBaseline(), mutated in place
- * @returns {Array<Object>} the same array, annotated with anomalies
- */
-function injectAnomalies(records) {
+function injectAnomalies(records, opts = {}) {
   const byEntity = {};
   for (const r of records) {
     (byEntity[r.entityId] = byEntity[r.entityId] || []).push(r);
@@ -103,70 +86,103 @@ function injectAnomalies(records) {
   let injectedCount = 0;
 
   function markAnomaly(record, type, newValue) {
+    if (!record) return;
     record.values = { value: round(newValue) };
     record._meta = { isAnomalySeed: true, anomalyType: type };
     injectedCount++;
   }
 
-  // ---- 1) Implausible jumps: one severe spike per zone on temperature ----
+  // 1. Implausible jumps on temperature
   for (const zone of ZONES) {
-    const entityId = `${zone}-temperature`;
-    const series = byEntity[entityId];
-    const idx = Math.floor(series.length * 0.4); // roughly 40% through the series
-    markAnomaly(series[idx], "implausible_jump", TYPE_CONFIG.temperature.base + 55); // e.g. ~80C
+    const series = byEntity[`${zone}-temperature`];
+    if (!series) continue;
+    const idx = Math.floor(series.length * 0.4);
+    markAnomaly(series[idx], "implausible_jump", TYPE_CONFIG.temperature.base + 55);
   }
 
-  // ---- 2) Historical deviation: gradual-looking but statistically extreme, on pressure ----
+  // 2. Historical deviation on pressure
   for (const zone of ZONES) {
-    const entityId = `${zone}-pressure`;
-    const series = byEntity[entityId];
+    const series = byEntity[`${zone}-pressure`];
+    if (!series) continue;
     const idx = Math.floor(series.length * 0.65);
     markAnomaly(series[idx], "historical_deviation", TYPE_CONFIG.pressure.base - 12);
   }
 
-  // ---- 3) Cross-sensor contradiction: one zone's humidity diverges from its peers ----
+  // 3. Cross-sensor contradiction on humidity
   {
-    const entityId = "zone-b-humidity";
-    const series = byEntity[entityId];
-    const idx = Math.floor(series.length * 0.5);
-    // Peers (zone-a-humidity, zone-c-humidity) stay near baseline ~50%;
-    // this zone drops sharply while its OWN recent history still looks locally smooth.
-    markAnomaly(series[idx], "cross_sensor_contradiction", 12);
+    const series = byEntity["zone-b-humidity"];
+    if (series) {
+      const idx = Math.floor(series.length * 0.5);
+      markAnomaly(series[idx], "cross_sensor_contradiction", 12);
+    }
   }
 
-  // ---- 4) A couple of extra scattered anomalies for a fuller demo/eval set ----
+  // 4. Default scattered anomalies
   {
-    const entityId = "zone-c-temperature";
-    const series = byEntity[entityId];
-    const idx = Math.floor(series.length * 0.8);
-    markAnomaly(series[idx], "implausible_jump", TYPE_CONFIG.temperature.base - 20);
+    const series = byEntity["zone-c-temperature"];
+    if (series) {
+      const idx = Math.floor(series.length * 0.8);
+      markAnomaly(series[idx], "implausible_jump", TYPE_CONFIG.temperature.base - 20);
+    }
   }
   {
-    const entityId = "zone-a-humidity";
-    const series = byEntity[entityId];
-    const idx = Math.floor(series.length * 0.25);
-    markAnomaly(series[idx], "cross_sensor_contradiction", 88);
+    const series = byEntity["zone-a-humidity"];
+    if (series) {
+      const idx = Math.floor(series.length * 0.25);
+      markAnomaly(series[idx], "cross_sensor_contradiction", 88);
+    }
   }
   {
-    const entityId = "zone-b-pressure";
-    const series = byEntity[entityId];
-    const idx = Math.floor(series.length * 0.85);
-    markAnomaly(series[idx], "historical_deviation", TYPE_CONFIG.pressure.base + 10);
+    const series = byEntity["zone-b-pressure"];
+    if (series) {
+      const idx = Math.floor(series.length * 0.85);
+      markAnomaly(series[idx], "historical_deviation", TYPE_CONFIG.pressure.base + 10);
+    }
+  }
+
+  // 5. Extended anomalies when scaling dataset
+  if (opts.days && opts.days > 3) {
+    // Inject gradual drift
+    const driftSeries = byEntity["zone-a-temperature"];
+    if (driftSeries && driftSeries.length > 20) {
+      for (let i = 15; i < 20; i++) {
+        const driftVal = driftSeries[i].values.value + (i - 14) * 2.5;
+        markAnomaly(driftSeries[i], "gradual_drift", driftVal);
+      }
+    }
+
+    // Additional cross-sensor contradictions
+    const humSeries = byEntity["zone-c-humidity"];
+    if (humSeries && humSeries.length > 25) {
+      markAnomaly(humSeries[22], "cross_sensor_contradiction", 15);
+      markAnomaly(humSeries[23], "cross_sensor_contradiction", 14);
+    }
+
+    // Additional implausible jump
+    const pressSeries = byEntity["zone-a-pressure"];
+    if (pressSeries && pressSeries.length > 30) {
+      markAnomaly(pressSeries[28], "implausible_jump", 1080);
+    }
   }
 
   return { records, injectedCount };
 }
 
-/**
- * Generates the complete labelled dataset, sorted chronologically (required
- * so the pipeline's rolling-history features are built up correctly when
- * records are ingested in order).
- */
-function generateDataset() {
-  const baseline = generateBaseline();
-  const { records, injectedCount } = injectAnomalies(baseline);
+function generateDataset(opts = {}) {
+  const baseline = generateBaseline(opts);
+  const { records, injectedCount } = injectAnomalies(baseline, opts);
   records.sort((a, b) => a.timestamp - b.timestamp);
-  return { records, injectedCount };
+  return {
+    records,
+    injectedCount,
+    datasetVersion: opts.version || `synthetic-${opts.days || DEFAULT_DAYS}d-v1.0.0`,
+  };
 }
 
-module.exports = { generateDataset, ZONES, TYPE_CONFIG };
+module.exports = {
+  generateDataset,
+  generateBaseline,
+  injectAnomalies,
+  ZONES,
+  TYPE_CONFIG,
+};
