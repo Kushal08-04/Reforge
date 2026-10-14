@@ -9,7 +9,8 @@
     "dev": "nodemon src/app.js",
     "seed": "node src/scripts/seedDataset.js",
     "evaluate": "node src/scripts/evaluate.js",
-    "verify": "node src/utils/verifyModels.js"
+    "verify": "node src/utils/verifyModels.js",
+    "test": "node test/runTests.js"
   },
   "keywords": ["reforge", "data-validation", "semantic-validation", "data-quality"],
   "license": "MIT",

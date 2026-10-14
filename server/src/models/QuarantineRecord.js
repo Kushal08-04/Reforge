@@ -33,6 +33,14 @@ const QuarantineRecordSchema = new Schema(
       index: true,
     },
     semanticRiskScore: { type: Number, default: null },
+    ruleRiskScore: { type: Number, default: null },
+    mlAnomalyScore: { type: Number, default: null },
+    comparisonCategory: { type: String, default: null },
+    repairProposalId: {
+      type: Schema.Types.ObjectId,
+      ref: "RepairProposal",
+      default: null,
+    },
 
     reviewStatus: {
       type: String,

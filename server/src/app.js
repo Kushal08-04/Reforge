@@ -10,6 +10,10 @@ const validateRoutes = require("./routes/validate.routes");
 const quarantineRoutes = require("./routes/quarantine.routes");
 const auditRoutes = require("./routes/audit.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const comparisonRoutes = require("./routes/comparison.routes");
+const evaluationRoutes = require("./routes/evaluation.routes");
+const modelRoutes = require("./routes/model.routes");
+const repairRoutes = require("./routes/repair.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +34,10 @@ app.use("/api/validation", validateRoutes);
 app.use("/api/quarantine", quarantineRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/comparison", comparisonRoutes);
+app.use("/api/evaluation", evaluationRoutes);
+app.use("/api/models", modelRoutes);
+app.use("/api/repairs", repairRoutes);
 
 app.get("/", (req, res) => {
   res.send("REFORGE server is running. See /api/health for status.");

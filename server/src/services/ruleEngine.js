@@ -110,9 +110,9 @@ function crossSensorRule(value, features) {
     triggered,
     severity,
     message: triggered
-      ? `Value disagrees with ${peerGroupSize} correlated sensor(s) averaging ${crossSensorMean.toFixed(
-          2
-        )} in the same time window.`
+      ? `Value disagrees with ${peerGroupSize} correlated sensor(s) averaging ${
+          typeof crossSensorMean === "number" ? crossSensorMean.toFixed(2) : "n/a"
+        } in the same time window.`
       : "Value is consistent with correlated peer sensors.",
     details: { crossSensorDeviation, crossSensorMean, peerGroupSize },
   };
@@ -145,7 +145,7 @@ function implausibleJumpRule(value, features) {
     severity,
     message: triggered
       ? `Implausible jump of ${rateOfChange.toFixed(2)} in ${
-          minutesSincePrevious !== null ? minutesSincePrevious.toFixed(0) : "?"
+          typeof minutesSincePrevious === "number" ? minutesSincePrevious.toFixed(0) : "?"
         } minute(s) - exceeds physically plausible change for this entity.`
       : "No implausible jump detected.",
     details: { rateOfChange, threshold, minutesSincePrevious },
