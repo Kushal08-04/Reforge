@@ -11,6 +11,7 @@ export default function Navbar() {
       </div>
       <div className="navbar-links">
         <NavLink to="/" end className={linkClass}>Overview</NavLink>
+        <NavLink to="/ingest" className={linkClass}>Inject Dataset</NavLink>
         <NavLink to="/quarantine" className={linkClass}>Quarantine</NavLink>
       </div>
     </nav>
