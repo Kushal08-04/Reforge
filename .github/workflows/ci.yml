@@ -1,0 +1,68 @@
+name: REFORGE Continuous Integration
+
+on:
+  push:
+    branches: [ main, feature/*, reforge/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-server:
+    name: Backend & Security Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+      - name: Install Dependencies
+        run: |
+          cd server
+          npm ci
+      - name: Run Test Suites (Rules, Hybrid Decision, Sandbox Runner, GitHub Integration)
+        run: |
+          cd server
+          node test/runTests.js
+
+  test-ml-service:
+    name: ML Anomaly Detection Microservice Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: ml-service/requirements.txt
+      - name: Install Dependencies
+        run: |
+          cd ml-service
+          pip install -r requirements.txt
+      - name: Run ML Unit & Feature Tests
+        run: |
+          cd ml-service
+          python -m unittest test_service.py
+
+  build-frontend:
+    name: React Frontend Production Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+      - name: Build Frontend Application
+        run: |
+          cd frontend
+          npm run build

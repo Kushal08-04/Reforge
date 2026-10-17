@@ -25,3 +25,14 @@ build/
 
 # Generated seed data / evaluation labels
 server/src/scripts/output/
+
+# Python virtual environments & bytecode
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/

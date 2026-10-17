@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: reforge-mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27018}:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - reforge-net
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: reforge-ml-service
+    restart: unless-stopped
+    ports:
+      - "${ML_PORT:-8000}:8000"
+    volumes:
+      - ml-artifacts:/app/artifacts
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - reforge-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: reforge-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/reforge}
+      - SEMANTIC_ENGINE_VERSION=${SEMANTIC_ENGINE_VERSION:-v0.2.0-hybrid}
+      - VALIDATION_MODE=${VALIDATION_MODE:-shadow}
+      - RISK_THRESHOLD_SUSPICIOUS=${RISK_THRESHOLD_SUSPICIOUS:-0.3}
+      - RISK_THRESHOLD_INVALID=${RISK_THRESHOLD_INVALID:-0.6}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - ML_SERVICE_URL=http://ml-service:8000
+      - ML_TIMEOUT_MS=${ML_TIMEOUT_MS:-2000}
+      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - GITHUB_REPO=${GITHUB_REPO:-Kushal08-04/Reforge}
+      - GITHUB_BASE_BRANCH=${GITHUB_BASE_BRANCH:-main}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    depends_on:
+      ml-service:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - reforge-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: reforge-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000/api
+    depends_on:
+      - server
+    networks:
+      - reforge-net
+
+volumes:
+  mongo-data:
+  ml-artifacts:
+
+networks:
+  reforge-net:
+    driver: bridge
