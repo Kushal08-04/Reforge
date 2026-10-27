@@ -8,6 +8,19 @@ import axios from "axios";
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
   headers: { "Content-Type": "application/json" },
+  timeout: 30000,
 });
+
+// Interceptor ensuring deterministic 4xx client errors are immediately rejected without retry
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // 4xx responses are deterministic client/validation errors and must not be retried
+    if (error.response && error.response.status >= 400 && error.response.status < 500) {
+      error.isDeterministicClientError = true;
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

@@ -1,0 +1,188 @@
+{
+  "generated_at": "2026-10-25T02:26:24.107108+00:00",
+  "total_pipeline_duration_seconds": 90.06,
+  "dataset_metadata": {
+    "dataset_version": "v1.0.0-iot-telemetry-405k",
+    "feature_schema_version": "v2.0.0-iot",
+    "total_records": 405171,
+    "partitions": {
+      "train": {
+        "count": 283619,
+        "ratio": 0.7,
+        "start_ts": 1594512094.3859746,
+        "end_ts": 1594996096.4495137,
+        "start_iso": "2020-07-12T00:01:34.385974646+00:00",
+        "end_iso": "2020-07-17T14:28:16.449513674+00:00"
+      },
+      "validation": {
+        "count": 60775,
+        "ratio": 0.15,
+        "start_ts": 1594996096.5702994,
+        "end_ts": 1595100385.477373,
+        "start_iso": "2020-07-17T14:28:16.570299387+00:00",
+        "end_iso": "2020-07-18T19:26:25.477372885+00:00"
+      },
+      "test": {
+        "count": 60777,
+        "ratio": 0.15,
+        "start_ts": 1595100386.892222,
+        "end_ts": 1595203417.2643125,
+        "start_iso": "2020-07-18T19:26:26.892221928+00:00",
+        "end_iso": "2020-07-20T00:03:37.264312506+00:00"
+      }
+    }
+  },
+  "exclusion_report": {
+    "dataset_archive": "iot_telemetry_data.csv.zip",
+    "initial_raw_records": 405184,
+    "dropped_exact_duplicates": 13,
+    "dropped_malformed": 0,
+    "eligible_records": 405171,
+    "exclusion_reasons": {
+      "exact_duplicate_rows": 13
+    }
+  },
+  "evaluation_summary": {
+    "eval_records": 5400,
+    "normal_eval_records": 5000,
+    "anomalous_eval_records": 400,
+    "anomaly_categories": [
+      "sudden_gas_spike_co",
+      "flatline_stuck_sensor",
+      "sudden_gas_spike_lpg",
+      "corrupted_invalid_type",
+      "implausible_temperature_jump",
+      "historical_zscore_deviation",
+      "sudden_gas_spike_smoke",
+      "cross_sensor_contradiction"
+    ]
+  },
+  "models": [
+    {
+      "model_name": "Isolation Forest",
+      "registry_key": "isolation_forest:v2.0.0-iot",
+      "type": "unsupervised",
+      "threshold": 0.5,
+      "training_time_s": 1.01,
+      "inference_latency_ms": 0.027,
+      "metrics": {
+        "tp": 365,
+        "fp": 1590,
+        "tn": 3410,
+        "fn": 35,
+        "precision": 0.1867,
+        "recall": 0.9125,
+        "f1": 0.31,
+        "specificity": 0.682,
+        "fpr": 0.318,
+        "roc_auc": 0.8681,
+        "pr_auc": 0.3302
+      }
+    },
+    {
+      "model_name": "Temporal Statistical",
+      "registry_key": "temporal_statistical:v2.0.0-iot",
+      "type": "statistical_rule_detector",
+      "threshold": 0.5,
+      "training_time_s": 0.0,
+      "inference_latency_ms": 0.0,
+      "metrics": {
+        "tp": 399,
+        "fp": 519,
+        "tn": 4481,
+        "fn": 1,
+        "precision": 0.4346,
+        "recall": 0.9975,
+        "f1": 0.6055,
+        "specificity": 0.8962,
+        "fpr": 0.1038,
+        "roc_auc": 0.9767,
+        "pr_auc": 0.7047
+      }
+    },
+    {
+      "model_name": "Random Forest",
+      "registry_key": "random_forest:v2.0.0-iot",
+      "type": "supervised_benchmark",
+      "threshold": 0.5,
+      "training_time_s": 0.47,
+      "inference_latency_ms": 0.1,
+      "metrics": {
+        "tp": 380,
+        "fp": 3,
+        "tn": 4997,
+        "fn": 20,
+        "precision": 0.9922,
+        "recall": 0.95,
+        "f1": 0.9706,
+        "specificity": 0.9994,
+        "fpr": 0.0006,
+        "roc_auc": 0.9999,
+        "pr_auc": 0.9987
+      }
+    },
+    {
+      "model_name": "XGBoost",
+      "registry_key": "xgboost:v2.0.0-iot",
+      "type": "supervised_benchmark",
+      "threshold": 0.5,
+      "training_time_s": 1.64,
+      "inference_latency_ms": 0.002,
+      "metrics": {
+        "tp": 380,
+        "fp": 1,
+        "tn": 4999,
+        "fn": 20,
+        "precision": 0.9974,
+        "recall": 0.95,
+        "f1": 0.9731,
+        "specificity": 0.9998,
+        "fpr": 0.0002,
+        "roc_auc": 0.9999,
+        "pr_auc": 0.9988
+      }
+    },
+    {
+      "model_name": "LightGBM",
+      "registry_key": "lightgbm:v2.0.0-iot",
+      "type": "supervised_benchmark",
+      "threshold": 0.5,
+      "training_time_s": 0.24,
+      "inference_latency_ms": 0.005,
+      "metrics": {
+        "tp": 393,
+        "fp": 0,
+        "tn": 5000,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.9825,
+        "f1": 0.9912,
+        "specificity": 1.0,
+        "fpr": 0.0,
+        "roc_auc": 0.9996,
+        "pr_auc": 0.9957
+      }
+    },
+    {
+      "model_name": "Hybrid Detection",
+      "registry_key": "hybrid_detection:v2.0.0-iot",
+      "type": "calibrated_hybrid_consensus",
+      "threshold": 0.5,
+      "training_time_s": 0.0,
+      "inference_latency_ms": 0.013,
+      "metrics": {
+        "tp": 393,
+        "fp": 0,
+        "tn": 5000,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.9825,
+        "f1": 0.9912,
+        "specificity": 1.0,
+        "fpr": 0.0,
+        "roc_auc": 0.9997,
+        "pr_auc": 0.9942
+      }
+    }
+  ]
+}

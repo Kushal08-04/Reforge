@@ -36,3 +36,11 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+scratch/
+
+# Large datasets & archives
+data/
+datasets/
+*.csv
+*.zip
+ml-service/data/

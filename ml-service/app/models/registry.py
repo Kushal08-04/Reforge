@@ -12,6 +12,10 @@ from pathlib import Path
 from .base import BaseAnomalyModel
 from .isolation_forest import IsolationForestAnomalyModel
 from .random_forest import RandomForestAnomalyModel
+from .xgboost_model import XGBoostAnomalyModel
+from .lightgbm_model import LightGBMAnomalyModel
+from .temporal_statistical import TemporalStatisticalAnomalyModel
+from .hybrid_model import HybridAnomalyModel
 
 ARTIFACTS_DIR = Path(__file__).resolve().parent.parent.parent / "artifacts"
 REGISTRY_FILE = ARTIFACTS_DIR / "registry.json"
@@ -113,6 +117,14 @@ class ModelRegistry:
             model = IsolationForestAnomalyModel.load(str(artifact_path))
         elif algo == "RandomForestClassifier":
             model = RandomForestAnomalyModel.load(str(artifact_path))
+        elif algo == "XGBoostClassifier":
+            model = XGBoostAnomalyModel.load(str(artifact_path))
+        elif algo == "LightGBMClassifier":
+            model = LightGBMAnomalyModel.load(str(artifact_path))
+        elif algo == "TemporalStatisticalDetector":
+            model = TemporalStatisticalAnomalyModel.load(str(artifact_path))
+        elif algo == "HybridConsensusDetector":
+            model = HybridAnomalyModel.load(str(artifact_path))
         else:
             raise ValueError(f"Unknown model algorithm: {algo}")
 

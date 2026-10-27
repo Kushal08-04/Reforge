@@ -22,10 +22,13 @@ const { logAudit } = require("./auditService");
  *   8. Complete append-only audit trail
  */
 async function runPipeline(payload) {
-  const timestamp = new Date(payload.timestamp);
+  const parsedDate = payload && payload.timestamp ? new Date(payload.timestamp) : null;
+  const isValidDate = parsedDate instanceof Date && !isNaN(parsedDate.getTime());
+  const timestamp = isValidDate ? parsedDate : new Date();
+  const timeString = isValidDate ? parsedDate.toISOString() : `invalid-time-${Date.now()}`;
   const ingestKey =
-    payload.ingestKey ||
-    `${payload.sourceId}:${payload.entityId}:${timestamp.toISOString()}`;
+    (payload && payload.ingestKey) ||
+    `${(payload && payload.sourceId) || "unknown"}:${(payload && payload.entityId) || "unknown"}:${timeString}`;
 
   // ---- Step 1-2: preserve raw observation (idempotent on ingestKey) ----
   let rawObservation = await RawObservation.findOne({ ingestKey });
@@ -35,13 +38,13 @@ async function runPipeline(payload) {
     isDuplicate = true;
   } else {
     rawObservation = await RawObservation.create({
-      sourceId: payload.sourceId,
-      sourceType: payload.sourceType || "sensor",
-      entityId: payload.entityId,
-      timestamp,
-      values: payload.values,
-      units: payload.units || {},
-      rawPayload: payload,
+      sourceId: (payload && payload.sourceId) || "unknown",
+      sourceType: (payload && payload.sourceType) || "sensor",
+      entityId: (payload && payload.entityId) || "unknown",
+      timestamp: isValidDate ? parsedDate : new Date(),
+      values: (payload && payload.values) || {},
+      units: (payload && payload.units) || {},
+      rawPayload: payload || {},
       ingestKey,
     });
   }

@@ -88,9 +88,9 @@ async function triggerTraining(req, res) {
 async function promote(req, res) {
   try {
     const { version } = req.params;
-    const { reviewer } = req.body;
+    const { reviewer, modelName } = req.body;
 
-    await mlClient.promoteModel(version);
+    await mlClient.promoteModel(version, modelName);
 
     await ModelVersion.updateMany({ status: "active" }, { status: "retired" });
     const updated = await ModelVersion.findOneAndUpdate(
@@ -105,7 +105,7 @@ async function promote(req, res) {
 
     res.json({
       status: "promoted",
-      activeModel: updated || { version },
+      activeModel: updated || { version, modelName },
     });
   } catch (err) {
     console.error("[REFORGE] promote error:", err);

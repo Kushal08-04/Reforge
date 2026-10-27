@@ -6,6 +6,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY src/ ./src/
+COPY sandbox/ ./sandbox/
+COPY pipeline/ ./pipeline/
+COPY test/ ./test/
 
 EXPOSE 5000
 

@@ -44,7 +44,7 @@ const QuarantineRecordSchema = new Schema(
 
     reviewStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected", "corrected"],
+      enum: ["pending", "approved", "rejected", "corrected", "repaired"],
       default: "pending",
       index: true,
     },

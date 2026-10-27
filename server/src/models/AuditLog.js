@@ -27,6 +27,8 @@ const AuditLogSchema = new Schema(
         "review_rejected",
         "review_corrected",
         "repair_diagnosed",
+        "repair_approved",
+        "repair_rejected",
         "sandbox_started",
         "sandbox_verified",
         "sandbox_failed",

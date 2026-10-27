@@ -51,7 +51,9 @@ class IsolationForestAnomalyModel(BaseAnomalyModel):
         self.is_fitted = True
         return self
 
-    def predict_scores(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def predict_scores(
+        self, X: np.ndarray, threshold: Optional[float] = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         if not self.is_fitted:
             raise RuntimeError("Model is not fitted. Train or load weights before inference.")
 
@@ -60,14 +62,13 @@ class IsolationForestAnomalyModel(BaseAnomalyModel):
         raw_scores = -dec_func.astype(float)  # higher = more anomalous
 
         # Sigmoid calibration centered at decision boundary (0.0 maps to 0.5)
-        # In scikit-learn IsolationForest, decision_function typically spans [-0.35, +0.25].
-        # k = 12.0 maps decision_function=0.0 -> 0.50, inlier (~+0.07) -> ~0.30, and outlier (~-0.20) -> ~0.92
         k = 12.0
         normalized = 1.0 / (1.0 + np.exp(-k * raw_scores))
         normalized = np.clip(normalized, 0.0, 1.0)
 
-        # Anomaly threshold at 0.5 (corresponding to raw_score >= 0.0)
-        is_anomaly = normalized >= 0.5
+        # Use calibrated threshold if available, otherwise default 0.5
+        thresh = threshold if threshold is not None else float(self.hyperparameters.get("calibrated_threshold", 0.5))
+        is_anomaly = normalized >= thresh
 
         return is_anomaly, raw_scores, normalized
 

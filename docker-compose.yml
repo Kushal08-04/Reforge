@@ -62,6 +62,7 @@ services:
       - GITHUB_REPO=${GITHUB_REPO:-Kushal08-04/Reforge}
       - GITHUB_BASE_BRANCH=${GITHUB_BASE_BRANCH:-main}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - ALLOW_SUBPROCESS_SANDBOX=true
     depends_on:
       ml-service:
         condition: service_healthy

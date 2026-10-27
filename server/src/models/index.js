@@ -5,6 +5,7 @@ const AuditLog = require("./AuditLog");
 const ModelVersion = require("./ModelVersion");
 const EvaluationRun = require("./EvaluationRun");
 const RepairProposal = require("./RepairProposal");
+const DatasetVersion = require("./DatasetVersion");
 
 module.exports = {
   RawObservation,
@@ -14,4 +15,5 @@ module.exports = {
   ModelVersion,
   EvaluationRun,
   RepairProposal,
+  DatasetVersion,
 };

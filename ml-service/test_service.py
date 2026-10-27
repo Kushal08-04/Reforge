@@ -28,20 +28,30 @@ class TestMLService(unittest.TestCase):
                 "rollingStd": 0.8,
                 "historicalZScore": 1.875,
                 "crossSensorDeviation": 0.2,
+                "normalizedPeerResidual": 0.2,
                 "minutesSincePrevious": 180,
                 "historyWindowSize": 20,
                 "peerGroupSize": 2,
+                "timeOfDaySin": 0.5,
+                "timeOfDayCos": 0.866,
+                "fastRollingMean": 26.0,
+                "fastRollingStd": 0.9,
+                "volatilityRatio": 1.125,
+                "meanDivergence": 1.0,
             },
         }
         vec, cleaned = extract_feature_vector(sample)
-        self.assertEqual(len(vec), 12)  # 9 numeric + 3 sensor type one-hots
+        # 19 numeric features + 3 sensor type one-hots = 22
+        self.assertEqual(len(vec), 22)
         self.assertEqual(cleaned["value"], 26.5)
         self.assertEqual(cleaned["type"], "temperature")
+        self.assertAlmostEqual(cleaned["timeOfDaySin"], 0.5)
+        self.assertAlmostEqual(cleaned["volatilityRatio"], 1.125)
 
     def test_isolation_forest_calibration(self):
         np.random.seed(42)
-        # 100 normal observations
-        X_normal = np.random.normal(loc=25.0, scale=1.0, size=(100, 12)).astype(np.float32)
+        # 100 normal observations across 22 features
+        X_normal = np.random.normal(loc=0.0, scale=1.0, size=(100, 22)).astype(np.float32)
         model = IsolationForestAnomalyModel(version="v-test")
         model.fit(X_normal)
 
@@ -52,8 +62,8 @@ class TestMLService(unittest.TestCase):
         # Predict on extreme outlier point (e.g., +50 std devs)
         X_extreme = np.copy(X_normal[:1])
         X_extreme[0, 0] = 250.0  # massive spike
-        X_extreme[0, 1] = 200.0  # massive rate of change
-        X_extreme[0, 4] = 50.0   # huge z-score
+        X_extreme[0, 1] = 50.0   # standardized value spike
+        X_extreme[0, 7] = 50.0   # huge z-score
         is_anom_ext, raw_ext, norm_ext = model.predict_scores(X_extreme)
 
         self.assertTrue(is_anom_ext[0])
@@ -62,7 +72,7 @@ class TestMLService(unittest.TestCase):
 
     def test_random_forest_guards(self):
         model = RandomForestAnomalyModel(version="v-rf-test")
-        X = np.random.normal(size=(20, 12))
+        X = np.random.normal(size=(20, 22))
 
         # 1-class target must raise ValueError
         y_single_class = np.zeros(20, dtype=int)

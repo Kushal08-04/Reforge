@@ -27,6 +27,7 @@ def calculate_metrics(
     recall = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
     f1 = float((2 * precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0
     specificity = float(tn / (tn + fp)) if (tn + fp) > 0 else 0.0
+    fpr = float(fp / (tn + fp)) if (tn + fp) > 0 else 0.0
 
     roc_auc = None
     pr_auc = None
@@ -83,6 +84,7 @@ def calculate_metrics(
         "recall": recall,
         "f1": f1,
         "specificity": specificity,
+        "fpr": fpr,
         "roc_auc": roc_auc,
         "pr_auc": pr_auc,
         "by_anomaly_type": by_anomaly_type,

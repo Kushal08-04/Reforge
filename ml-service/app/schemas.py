@@ -19,6 +19,14 @@ class FeatureVector(BaseModel):
     peerGroupSize: int = Field(0, description="Number of peer sensors observed")
     zone: Optional[str] = Field(None, description="Sensor zone identifier")
     type: Optional[str] = Field(None, description="Sensor measurement type")
+    timeOfDaySin: Optional[float] = Field(None, description="Cyclical diurnal sin encoding")
+    timeOfDayCos: Optional[float] = Field(None, description="Cyclical diurnal cos encoding")
+    fastRollingMean: Optional[float] = Field(None, description="Fast 5-sample rolling mean")
+    fastRollingStd: Optional[float] = Field(None, description="Fast 5-sample rolling standard deviation")
+    volatilityRatio: Optional[float] = Field(None, description="Ratio of fast to slow volatility")
+    meanDivergence: Optional[float] = Field(None, description="Divergence between fast and slow rolling means")
+    normalizedPeerResidual: Optional[float] = Field(None, description="Normalized peer consensus residual")
+
 
 
 class PredictRequest(BaseModel):
@@ -102,6 +110,7 @@ class EvaluateResponse(BaseModel):
     recall: float
     f1: float
     specificity: float
+    fpr: Optional[float] = None
     roc_auc: Optional[float] = None
     pr_auc: Optional[float] = None
     by_anomaly_type: Dict[str, Dict[str, int]] = Field(default_factory=dict)

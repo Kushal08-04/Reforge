@@ -196,4 +196,66 @@ async function createRepairPullRequest(proposalId, actor = "system") {
   return proposal;
 }
 
-module.exports = { createRepairPullRequest, GITHUB_REPO, GITHUB_BASE_BRANCH };
+async function commitFileToGitHub({ path: filePath, content, message, branch = GITHUB_BASE_BRANCH }) {
+  if (!GITHUB_TOKEN) {
+    return {
+      success: true,
+      mock: true,
+      path: filePath,
+      commitSha: "mock-" + crypto.randomBytes(8).toString("hex"),
+      message,
+      url: `https://github.com/${GITHUB_REPO}/blob/${branch}/${filePath}`,
+    };
+  }
+
+  const baseHeaders = {
+    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "REFORGE-Data-Engine/2.0",
+  };
+
+  const fileUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${filePath}`;
+  let existingSha = null;
+  try {
+    const checkRes = await fetch(fileUrl + `?ref=${branch}`, { headers: baseHeaders });
+    if (checkRes.ok) {
+      const data = await checkRes.json();
+      existingSha = data.sha;
+    }
+  } catch {
+    // File may not exist yet, which is expected
+  }
+
+  const putBody = {
+    message,
+    content: Buffer.from(content).toString("base64"),
+    branch,
+  };
+  if (existingSha) putBody.sha = existingSha;
+
+  const res = await fetch(fileUrl, {
+    method: "PUT",
+    headers: { ...baseHeaders, "Content-Type": "application/json" },
+    body: JSON.stringify(putBody),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to commit file to GitHub: ${res.status} ${errText}`);
+  }
+
+  const json = await res.json();
+  return {
+    success: true,
+    path: filePath,
+    commitSha: json.commit?.sha || "sha-" + crypto.randomBytes(6).toString("hex"),
+    url: json.content?.html_url || `https://github.com/${GITHUB_REPO}/blob/${branch}/${filePath}`,
+  };
+}
+
+module.exports = {
+  createRepairPullRequest,
+  commitFileToGitHub,
+  GITHUB_REPO,
+  GITHUB_BASE_BRANCH,
+};
