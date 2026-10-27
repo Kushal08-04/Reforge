@@ -24,6 +24,7 @@ const EvaluationRunSchema = new Schema(
       recall: Number,
       f1: Number,
       specificity: Number,
+      fpr: Number,
       byType: Schema.Types.Mixed,
     },
 
@@ -36,6 +37,7 @@ const EvaluationRunSchema = new Schema(
       recall: Number,
       f1: Number,
       specificity: Number,
+      fpr: Number,
       roc_auc: Number,
       pr_auc: Number,
       byType: Schema.Types.Mixed,
@@ -50,6 +52,7 @@ const EvaluationRunSchema = new Schema(
       recall: Number,
       f1: Number,
       specificity: Number,
+      fpr: Number,
       byType: Schema.Types.Mixed,
     },
 
@@ -65,6 +68,7 @@ const EvaluationRunSchema = new Schema(
 
     latencyMetrics: {
       avgInferenceMs: Number,
+      memoryMb: Number,
       mlFailures: Number,
     },
 

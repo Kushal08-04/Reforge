@@ -12,15 +12,16 @@ const {
   RepairProposal,
 } = require("../models");
 const llmProvider = require("./llmProvider");
+const dataRepairService = require("./dataRepairService");
 const { logAudit } = require("./auditService");
 
-async function diagnoseAndProposeRepair(quarantineRecordId, actor = "system") {
+async function diagnoseAndProposeRepair(quarantineRecordId, actor = "system", mode = "DATA_REPAIR") {
   const quarantineRecord = await QuarantineRecord.findById(quarantineRecordId);
   if (!quarantineRecord) {
     throw new Error(`Quarantine record ${quarantineRecordId} not found.`);
   }
 
-  const [rawObservation, validationResult, history] = await Promise.all([
+  const [rawObservation, validationResult, history, predecessor, successor, peers] = await Promise.all([
     RawObservation.findById(quarantineRecord.rawObservationId).lean(),
     ValidationResult.findById(quarantineRecord.validationResultId).lean(),
     RawObservation.find({
@@ -30,59 +31,129 @@ async function diagnoseAndProposeRepair(quarantineRecordId, actor = "system") {
       .sort({ timestamp: -1 })
       .limit(10)
       .lean(),
+    RawObservation.findOne({
+      entityId: quarantineRecord.entityId,
+      timestamp: { $lt: quarantineRecord.timestamp },
+    })
+      .sort({ timestamp: -1 })
+      .lean(),
+    RawObservation.findOne({
+      entityId: quarantineRecord.entityId,
+      timestamp: { $gt: quarantineRecord.timestamp },
+    })
+      .sort({ timestamp: 1 })
+      .lean(),
+    RawObservation.find({
+      entityId: { $ne: quarantineRecord.entityId },
+      timestamp: {
+        $gte: new Date(new Date(quarantineRecord.timestamp).getTime() - 60000),
+        $lte: new Date(new Date(quarantineRecord.timestamp).getTime() + 60000),
+      },
+    })
+      .limit(20)
+      .lean(),
   ]);
 
   if (!rawObservation || !validationResult) {
     throw new Error("Missing underlying observation or validation result.");
   }
 
-  // Generate structured diagnosis and repair via LLM provider
-  const diagnosis = await llmProvider.generateDiagnosisAndRepair({
-    entityId: quarantineRecord.entityId,
-    observation: rawObservation,
-    validationResult,
-    history,
-  });
+  let proposal;
 
-  // Create persisted RepairProposal
-  const proposal = await RepairProposal.create({
-    quarantineRecordId: quarantineRecord._id,
-    rawObservationId: rawObservation._id,
-    entityId: quarantineRecord.entityId,
-    failureCategory: diagnosis.failureCategory,
-    rootCauseHypothesis: diagnosis.rootCauseHypothesis,
-    evidence: {
-      ruleRiskScore: validationResult.ruleRiskScore,
-      ruleClassification: validationResult.ruleClassification,
-      triggeredRules: (validationResult.evidence || [])
-        .filter((e) => e.triggered)
-        .map((e) => ({ source: e.source, severity: e.severity, message: e.message })),
-      mlResult: validationResult.mlResult,
-      comparisonCategory: validationResult.comparisonCategory,
-      rawReading: rawObservation.values?.value,
-      timestamp: rawObservation.timestamp,
-    },
-    proposedPatch: {
-      targetFile: diagnosis.targetFile,
-      patchType: diagnosis.patchType,
-      diff: diagnosis.diff,
-      description: diagnosis.description,
-      codeBefore: diagnosis.codeBefore,
-      codeAfter: diagnosis.codeAfter,
-    },
-    risksAndAssumptions: diagnosis.risksAndAssumptions,
-    testsRequired: diagnosis.testsRequired,
-    lifecycleState: "PROPOSED",
-    stateHistory: [
-      {
-        fromState: "DETECTED",
-        toState: "PROPOSED",
-        actor,
-        timestamp: new Date(),
-        notes: `Diagnosed as ${diagnosis.failureCategory} with automated ${diagnosis.patchType} proposal.`,
+  if (mode === "CODE_PATCH") {
+    // Mode B: Agentic code patch generation
+    const diagnosis = await llmProvider.generateDiagnosisAndRepair({
+      entityId: quarantineRecord.entityId,
+      observation: rawObservation,
+      validationResult,
+      history,
+    });
+
+    proposal = await RepairProposal.create({
+      quarantineRecordId: quarantineRecord._id,
+      rawObservationId: rawObservation._id,
+      entityId: quarantineRecord.entityId,
+      failureCategory: diagnosis.failureCategory,
+      repairMode: "CODE_PATCH",
+      rootCauseHypothesis: diagnosis.rootCauseHypothesis,
+      evidence: {
+        ruleRiskScore: validationResult.ruleRiskScore,
+        ruleClassification: validationResult.ruleClassification,
+        triggeredRules: (validationResult.evidence || [])
+          .filter((e) => e.triggered)
+          .map((e) => ({ source: e.source, severity: e.severity, message: e.message })),
+        mlResult: validationResult.mlResult,
+        comparisonCategory: validationResult.comparisonCategory,
+        rawReading: rawObservation.values?.value,
+        timestamp: rawObservation.timestamp,
       },
-    ],
-  });
+      proposedPatch: {
+        targetFile: diagnosis.targetFile,
+        patchType: diagnosis.patchType,
+        diff: diagnosis.diff,
+        description: diagnosis.description,
+        codeBefore: diagnosis.codeBefore,
+        codeAfter: diagnosis.codeAfter,
+      },
+      risksAndAssumptions: diagnosis.risksAndAssumptions,
+      testsRequired: diagnosis.testsRequired,
+      lifecycleState: "PROPOSED",
+      stateHistory: [
+        {
+          fromState: "DETECTED",
+          toState: "PROPOSED",
+          actor,
+          timestamp: new Date(),
+          notes: `Diagnosed as ${diagnosis.failureCategory} with automated ${diagnosis.patchType} proposal (CODE_PATCH mode).`,
+        },
+      ],
+    });
+  } else {
+    // Mode A: Data-Level Repair (Default)
+    const candidateDataRepair = dataRepairService.generateDataRepairCandidates({
+      rawObservation,
+      validationResult,
+      history,
+      predecessor,
+      successor,
+      peers,
+    });
+
+    const failureCategory = validationResult.classification === "invalid" || validationResult.ruleClassification === "invalid"
+      ? "implausible_jump"
+      : "historical_drift";
+
+    proposal = await RepairProposal.create({
+      quarantineRecordId: quarantineRecord._id,
+      rawObservationId: rawObservation._id,
+      entityId: quarantineRecord.entityId,
+      failureCategory,
+      repairMode: "DATA_REPAIR",
+      dataRepair: candidateDataRepair,
+      rootCauseHypothesis: candidateDataRepair.estimationDetails?.formulaExplanation || "Anomalous reading requiring calibrated data-level repair.",
+      evidence: {
+        ruleRiskScore: validationResult.ruleRiskScore,
+        ruleClassification: validationResult.ruleClassification,
+        triggeredRules: (validationResult.evidence || [])
+          .filter((e) => e.triggered)
+          .map((e) => ({ source: e.source, severity: e.severity, message: e.message })),
+        mlResult: validationResult.mlResult,
+        comparisonCategory: validationResult.comparisonCategory,
+        rawReading: rawObservation.values?.value,
+        timestamp: rawObservation.timestamp,
+      },
+      lifecycleState: "PROPOSED",
+      stateHistory: [
+        {
+          fromState: "DETECTED",
+          toState: "PROPOSED",
+          actor,
+          timestamp: new Date(),
+          notes: `Data-level repair proposed via ${candidateDataRepair.repairStrategy} (proposed: ${candidateDataRepair.proposedValue}, confidence: ${(candidateDataRepair.confidenceScore * 100).toFixed(0)}%).`,
+        },
+      ],
+    });
+  }
 
   // Link proposal back to QuarantineRecord
   quarantineRecord.repairProposalId = proposal._id;
@@ -93,9 +164,10 @@ async function diagnoseAndProposeRepair(quarantineRecordId, actor = "system") {
     action: "repair_diagnosed",
     details: {
       repairProposalId: proposal._id,
-      failureCategory: diagnosis.failureCategory,
-      patchType: diagnosis.patchType,
-      targetFile: diagnosis.targetFile,
+      failureCategory: proposal.failureCategory,
+      repairMode: proposal.repairMode,
+      proposedValue: proposal.dataRepair?.proposedValue,
+      patchType: proposal.proposedPatch?.patchType,
     },
     actor,
   });

@@ -83,6 +83,45 @@ function testHybridDecisionEngine() {
   assert.strictEqual(mlOutage.officialClassification, "suspicious");
   assert.ok(mlOutage.disagreementReason.includes("unavailable"));
 
+  // 8. Regression test: Borderline ML prediction without corroborating risk is suppressed to prevent FP
+  const borderlineMlSuppressed = evaluateHybridDecision({
+    schemaValid: true,
+    ruleClassification: "valid",
+    ruleRiskScore: 0.05,
+    mlResult: { isAnomaly: true, anomalyScore: 0.58, status: "success" },
+    mode: "hybrid",
+  });
+  assert.strictEqual(borderlineMlSuppressed.officialClassification, "valid");
+  assert.strictEqual(borderlineMlSuppressed.hybridClassification, "valid");
+  assert.strictEqual(borderlineMlSuppressed.comparisonCategory, "rule_normal_ml_anomaly");
+  assert.ok(borderlineMlSuppressed.disagreementReason.includes("Preserved rule-based baseline"));
+
+  // 9. Regression test: Subtle ML anomaly with corroborating rule risk is escalated to suspicious
+  const subtleCorroboratedAnomaly = evaluateHybridDecision({
+    schemaValid: true,
+    ruleClassification: "valid",
+    ruleRiskScore: 0.20,
+    mlResult: { isAnomaly: true, anomalyScore: 0.62, status: "success" },
+    mode: "hybrid",
+  });
+  assert.strictEqual(subtleCorroboratedAnomaly.officialClassification, "suspicious");
+  assert.strictEqual(subtleCorroboratedAnomaly.hybridClassification, "suspicious");
+  assert.strictEqual(subtleCorroboratedAnomaly.comparisonCategory, "rule_normal_ml_anomaly");
+  assert.ok(subtleCorroboratedAnomaly.disagreementReason.includes("corroborating rule risk"));
+
+  // 10. Regression test: High confidence ML anomaly is escalated even if rules scored 0 risk
+  const highConfidenceAnomaly = evaluateHybridDecision({
+    schemaValid: true,
+    ruleClassification: "valid",
+    ruleRiskScore: 0.0,
+    mlResult: { isAnomaly: true, anomalyScore: 0.85, status: "success" },
+    mode: "hybrid",
+  });
+  assert.strictEqual(highConfidenceAnomaly.officialClassification, "suspicious");
+  assert.strictEqual(highConfidenceAnomaly.hybridClassification, "suspicious");
+  assert.strictEqual(highConfidenceAnomaly.comparisonCategory, "rule_normal_ml_anomaly");
+  assert.ok(highConfidenceAnomaly.disagreementReason.includes("high confidence"));
+
   console.log("  [ok] Calibrated hybrid decision engine passed all policies.");
 }
 

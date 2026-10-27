@@ -33,23 +33,31 @@ async function run() {
     console.log(`  Precision:   ${(report.ruleMetrics.precision * 100).toFixed(1)}%`);
     console.log(`  Recall:      ${(report.ruleMetrics.recall * 100).toFixed(1)}%`);
     console.log(`  F1-Score:    ${report.ruleMetrics.f1.toFixed(3)}`);
-    console.log(`  Specificity: ${(report.ruleMetrics.specificity * 100).toFixed(1)}%\n`);
+    console.log(`  Specificity: ${(report.ruleMetrics.specificity * 100).toFixed(1)}%`);
+    console.log(`  FPR:         ${((report.ruleMetrics.fpr || 0) * 100).toFixed(2)}%\n`);
 
     console.log("--- 2. ML ANOMALY DETECTION (ISOLATION FOREST) ---");
     console.log(`  TP: ${report.mlMetrics.tp} | FP: ${report.mlMetrics.fp} | TN: ${report.mlMetrics.tn} | FN: ${report.mlMetrics.fn}`);
     console.log(`  Precision:   ${(report.mlMetrics.precision * 100).toFixed(1)}%`);
     console.log(`  Recall:      ${(report.mlMetrics.recall * 100).toFixed(1)}%`);
     console.log(`  F1-Score:    ${report.mlMetrics.f1.toFixed(3)}`);
-    console.log(`  Specificity: ${(report.mlMetrics.specificity * 100).toFixed(1)}%\n`);
+    console.log(`  Specificity: ${(report.mlMetrics.specificity * 100).toFixed(1)}%`);
+    console.log(`  FPR:         ${((report.mlMetrics.fpr || 0) * 100).toFixed(2)}%\n`);
 
     console.log("--- 3. CALIBRATED HYBRID POLICY ---");
     console.log(`  TP: ${report.hybridMetrics.tp} | FP: ${report.hybridMetrics.fp} | TN: ${report.hybridMetrics.tn} | FN: ${report.hybridMetrics.fn}`);
     console.log(`  Precision:   ${(report.hybridMetrics.precision * 100).toFixed(1)}%`);
     console.log(`  Recall:      ${(report.hybridMetrics.recall * 100).toFixed(1)}%`);
     console.log(`  F1-Score:    ${report.hybridMetrics.f1.toFixed(3)}`);
-    console.log(`  Specificity: ${(report.hybridMetrics.specificity * 100).toFixed(1)}%\n`);
+    console.log(`  Specificity: ${(report.hybridMetrics.specificity * 100).toFixed(1)}%`);
+    console.log(`  FPR:         ${((report.hybridMetrics.fpr || 0) * 100).toFixed(2)}%\n`);
 
-    console.log("--- 4. RULE VS ML AGREEMENT ANALYSIS ---");
+    console.log("--- 4. LATENCY & RESOURCE PROFILE ---");
+    console.log(`  Avg Inference Latency: ${report.latencyMetrics.avgInferenceMs?.toFixed(2) || "N/A"} ms`);
+    console.log(`  Node Process Heap:     ${report.latencyMetrics.memoryMb?.toFixed(2) || "N/A"} MB`);
+    console.log(`  ML Fallbacks/Failures: ${report.latencyMetrics.mlFailures || 0}\n`);
+
+    console.log("--- 5. RULE VS ML AGREEMENT ANALYSIS ---");
     console.log(`  Consensus Normal (Both Normal):        ${report.agreementStats.bothNormal}`);
     console.log(`  Consensus Anomaly (Both Anomaly):      ${report.agreementStats.bothAnomaly}`);
     console.log(`  Rule Flagged / ML Normal:              ${report.agreementStats.ruleAnomalyMlNormal}`);
@@ -57,7 +65,7 @@ async function run() {
     console.log(`  Overall Agreement Rate:                ${(report.agreementStats.agreementRate * 100).toFixed(1)}%`);
     console.log(`  Disagreement Rate:                     ${(report.agreementStats.disagreementRate * 100).toFixed(1)}%\n`);
 
-    console.log("--- 5. DETECTION RATE BY ANOMALY TYPE (HYBRID) ---");
+    console.log("--- 6. DETECTION RATE BY ANOMALY TYPE (HYBRID) ---");
     for (const [type, stats] of Object.entries(report.hybridMetrics.byType)) {
       console.log(`  ${type.padEnd(28)}: ${stats.caught}/${stats.total} (${(stats.rate * 100).toFixed(0)}%)`);
     }

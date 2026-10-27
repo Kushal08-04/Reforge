@@ -19,7 +19,7 @@
  *   - ML Fallback / Unavailable -> rule-based authoritative result with fallback flag
  */
 
-const DECISION_POLICY_VERSION = "v1.0.0-hybrid";
+const DECISION_POLICY_VERSION = "v1.2.0-hybrid";
 
 function determineComparisonCategory(isRuleAnomaly, isMlAnomaly) {
   if (!isRuleAnomaly && !isMlAnomaly) return "rule_normal_ml_normal";
@@ -61,7 +61,7 @@ function evaluateHybridDecision({
   }
 
   const isRuleAnomaly = ruleClassification === "suspicious" || ruleClassification === "invalid";
-  const isMlAnomaly = Boolean(mlResult?.isAnomaly) || (mlResult?.anomalyScore >= 0.5);
+  const isMlAnomaly = Boolean(mlResult?.isAnomaly);
   const mlAvailable = mlResult?.status === "success";
 
   const comparisonCategory = mlAvailable
@@ -94,11 +94,26 @@ function evaluateHybridDecision({
         disagreementReason = `Disagreement: Rule engine flagged anomaly (${ruleClassification}, risk ${ruleRiskScore.toFixed(2)}) based on explicit domain constraints, but ML model considered the multi-feature vector normal (score ${mlResult.anomalyScore.toFixed(2)}). Escalated for human review.`;
         break;
 
-      case "rule_normal_ml_anomaly":
+      case "rule_normal_ml_anomaly": {
         // ML flagged, Rule passed
-        hybridClassification = "suspicious";
-        disagreementReason = `Disagreement: ML model detected multidimensional anomaly (score ${mlResult.anomalyScore.toFixed(2)}), while static rule thresholds were not breached (risk ${ruleRiskScore.toFixed(2)}). Escalated for human review.`;
+        const mlScore = typeof mlResult?.anomalyScore === "number" ? mlResult.anomalyScore : 0;
+        const ruleRisk = typeof ruleRiskScore === "number" ? ruleRiskScore : 0;
+        // Require either very high ML confidence (>=0.80) or corroborating rule risk evidence (>=0.20 with score >= 0.60)
+        // so that noisy/borderline ML predictions do not degrade the rule-based baseline.
+        const isHighConfidenceMl = mlScore >= 0.80;
+        const hasCorroboratingRisk = ruleRisk >= 0.20 && mlScore >= 0.60;
+
+        if (isHighConfidenceMl || hasCorroboratingRisk) {
+          hybridClassification = "suspicious";
+          disagreementReason = `Disagreement: ML model detected multidimensional outlier with ${
+            isHighConfidenceMl ? `high confidence (score ${mlScore.toFixed(2)})` : `corroborating rule risk (${ruleRisk.toFixed(2)}, ML score ${mlScore.toFixed(2)})`
+          }, while static rule thresholds were not breached. Escalated for human review.`;
+        } else {
+          hybridClassification = "valid";
+          disagreementReason = `Disagreement: ML model flagged borderline outlier (score ${mlScore.toFixed(2)}), but rule engine scored negligible risk (${ruleRisk.toFixed(2)}). Preserved rule-based baseline to prevent false alarms.`;
+        }
         break;
+      }
 
       default:
         hybridClassification = ruleClassification;

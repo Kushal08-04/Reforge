@@ -47,13 +47,39 @@ export default function RecordDetailPage() {
     dispatch(submitReview(payload));
   }
 
-  async function handleDiagnoseAndRepair() {
+  const [repairMode, setRepairMode] = useState("DATA_REPAIR");
+  const [healing, setHealing] = useState(false);
+  const [healSuccessMsg, setHealSuccessMsg] = useState("");
+
+  async function handleAutoHeal() {
+    setHealing(true);
+    setHealSuccessMsg("");
+    try {
+      const res = await apiClient.post("/quarantine/heal", {
+        quarantineRecordId: quarantineRecord._id,
+        reviewer,
+      });
+      if (res.data.success) {
+        setHealSuccessMsg(
+          `Observation successfully healed in sandbox! Healed Value: ${res.data.results?.[0]?.healedValue} (Risk: ${res.data.results?.[0]?.finalRiskScore} < 0.30 via ${res.data.results?.[0]?.strategy})`
+        );
+        dispatch(fetchQuarantineDetail(id));
+      }
+    } catch (err) {
+      setDiagnoseError(err.response?.data?.error || err.message || "Auto-heal failed.");
+    } finally {
+      setHealing(false);
+    }
+  }
+
+  async function handleDiagnoseAndRepair(selectedMode = repairMode) {
     setDiagnosing(true);
     setDiagnoseError("");
     try {
       const res = await apiClient.post("/repairs/diagnose", {
         quarantineRecordId: quarantineRecord._id,
         reviewer,
+        mode: selectedMode,
       });
       const proposal = res.data.proposal;
       navigate(`/repairs/${proposal._id}`);
@@ -71,22 +97,32 @@ export default function RecordDetailPage() {
       <p><Link to="/quarantine" className="link-small">&larr; Back to quarantine queue</Link></p>
       <h1 className="page-title">Record Detail & Quarantine Inspection</h1>
 
+      {healSuccessMsg && (
+        <div style={{ padding: "0.75rem 1rem", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "6px", marginBottom: "1rem", color: "#166534", fontWeight: "600" }}>
+          ✓ {healSuccessMsg}
+        </div>
+      )}
+
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <h2 className="card-title" style={{ margin: 0 }}>Observation Metadata</h2>
-          {quarantineRecord.repairProposalId ? (
-            <Link to={`/repairs/${quarantineRecord.repairProposalId}`} className="btn btn-neutral" style={{ textDecoration: "none" }}>
-              View Existing Repair Proposal &rarr;
-            </Link>
-          ) : (
-            <button
-              className="btn btn-approve"
-              onClick={handleDiagnoseAndRepair}
-              disabled={diagnosing}
-            >
-              {diagnosing ? "Diagnosing Failure..." : "Diagnose & Propose ETL Repair"}
-            </button>
-          )}
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            {!alreadyReviewed && (
+              <button
+                className="btn btn-approve"
+                onClick={handleAutoHeal}
+                disabled={healing}
+                style={{ fontWeight: "bold" }}
+              >
+                {healing ? "Healing in Sandbox..." : "⚡ Auto-Heal in Sandbox (< 0.30)"}
+              </button>
+            )}
+            {quarantineRecord.repairProposalId && (
+              <Link to={`/repairs/${quarantineRecord.repairProposalId}`} className="btn btn-neutral" style={{ textDecoration: "none" }}>
+                View Repair Proposal &rarr;
+              </Link>
+            )}
+          </div>
         </div>
 
         {diagnoseError && <p className="error-text">{diagnoseError}</p>}
@@ -151,14 +187,31 @@ export default function RecordDetailPage() {
         <h2 className="card-title">Manual Review Actions</h2>
         {alreadyReviewed ? (
           <div>
-            <p>
-              This record was already <strong>{quarantineRecord.reviewStatus}</strong> by{" "}
-              {quarantineRecord.reviewer} on {new Date(quarantineRecord.reviewedAt).toLocaleString()}.
-            </p>
-            {quarantineRecord.correctedValues && (
-              <p>Corrected value: <strong>{quarantineRecord.correctedValues.value}</strong></p>
+            {quarantineRecord.reviewStatus === "repaired" ? (
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "0.8rem 1rem", borderRadius: "6px" }}>
+                <p style={{ margin: "0 0 0.3rem", color: "#166534" }}>
+                  ✓ This observation was <strong>Auto-Healed in Sandbox</strong> by {quarantineRecord.reviewer} on {new Date(quarantineRecord.reviewedAt).toLocaleString()}.
+                </p>
+                <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.5rem", fontSize: "0.95rem" }}>
+                  <div>Original: <strong style={{ color: "var(--invalid)", textDecoration: "line-through" }}>{quarantineRecord.correctedValues?.previousValue ?? "—"}</strong></div>
+                  <div>Healed: <strong style={{ color: "var(--valid)", fontSize: "1.1rem" }}>{quarantineRecord.correctedValues?.value}</strong></div>
+                  <div>Strategy: <code>{quarantineRecord.correctedValues?.strategy}</code></div>
+                  <div>Risk: <span className="badge badge-success">&lt; 0.30 Verified</span></div>
+                </div>
+                {quarantineRecord.reviewNotes && <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.85rem" }}>Notes: {quarantineRecord.reviewNotes}</p>}
+              </div>
+            ) : (
+              <div>
+                <p>
+                  This record was already <strong>{quarantineRecord.reviewStatus}</strong> by{" "}
+                  {quarantineRecord.reviewer} on {new Date(quarantineRecord.reviewedAt).toLocaleString()}.
+                </p>
+                {quarantineRecord.correctedValues && (
+                  <p>Corrected value: <strong>{quarantineRecord.correctedValues.value}</strong></p>
+                )}
+                {quarantineRecord.reviewNotes && <p className="muted">Notes: {quarantineRecord.reviewNotes}</p>}
+              </div>
             )}
-            {quarantineRecord.reviewNotes && <p className="muted">Notes: {quarantineRecord.reviewNotes}</p>}
           </div>
         ) : (
           <>

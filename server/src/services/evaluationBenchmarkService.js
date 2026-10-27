@@ -50,6 +50,7 @@ function computeClassificationStats(items, getPredictedBool) {
   const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
   const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
   const specificity = tn + fp > 0 ? tn / (tn + fp) : 0;
+  const fpr = tn + fp > 0 ? fp / (tn + fp) : 0;
 
   return {
     tp,
@@ -60,6 +61,7 @@ function computeClassificationStats(items, getPredictedBool) {
     recall,
     f1,
     specificity,
+    fpr,
     byType,
   };
 }
@@ -130,7 +132,7 @@ async function runEvaluationBenchmark() {
       anomalyType: label.anomalyType,
       ruleClassification: vr.ruleClassification || vr.classification,
       ruleRiskScore: vr.ruleRiskScore ?? vr.semanticRiskScore ?? 0,
-      mlAnomaly: Boolean(vr.mlResult?.isAnomaly || vr.mlResult?.anomalyScore >= 0.5),
+      mlAnomaly: Boolean(vr.mlResult?.isAnomaly),
       mlAnomalyScore: vr.mlResult?.anomalyScore || 0,
       hybridClassification: vr.hybridClassification || vr.classification,
       officialClassification: vr.classification,
@@ -190,6 +192,7 @@ async function runEvaluationBenchmark() {
   };
 
   const avgInferenceMs = inferenceCount > 0 ? totalInferenceTime / inferenceCount : 12.5;
+  const memoryMb = Math.round((process.memoryUsage().heapUsed / (1024 * 1024)) * 100) / 100;
 
   const runRecord = await EvaluationRun.create({
     datasetVersion: `synthetic-eval-${total}`,
@@ -203,6 +206,7 @@ async function runEvaluationBenchmark() {
     agreementStats,
     latencyMetrics: {
       avgInferenceMs,
+      memoryMb,
       mlFailures,
     },
   });
@@ -216,6 +220,7 @@ async function runEvaluationBenchmark() {
     agreementStats,
     latencyMetrics: {
       avgInferenceMs,
+      memoryMb,
       mlFailures,
     },
     evaluatedAt: runRecord.evaluatedAt,

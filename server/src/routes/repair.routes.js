@@ -15,5 +15,6 @@ router.get("/:id", getRepairDetail);
 router.post("/:id/sandbox", executeSandbox);
 router.post("/:id/create-pr", createPR);
 router.patch("/:id/review", reviewRepair);
+router.post("/:id/review", reviewRepair);
 
 module.exports = router;

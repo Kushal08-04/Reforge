@@ -28,6 +28,7 @@ from .features import (
     FEATURE_SCHEMA_VERSION,
     extract_feature_vector,
     extract_feature_matrix,
+    extract_features_for_model,
 )
 from .models import (
     registry,
@@ -38,52 +39,194 @@ from .evaluation import calculate_metrics
 
 
 def _bootstrap_initial_model():
-    """Ensure at least one approved baseline Isolation Forest model is in registry."""
+    """Ensure at least one approved baseline model is in registry."""
     active = registry.get_active_meta()
     if active is not None:
         return
 
-    print("[REFORGE ML] Bootstrapping initial baseline Isolation Forest model (v1.0.0)...")
-    # Generate baseline synthetic normal points for initial fitting
+    print("[REFORGE ML] Bootstrapping initial baseline multi-sensor Isolation Forest model (v1.2.0)...")
     np.random.seed(42)
-    n_samples = 300
-    temp_vals = np.random.normal(25.0, 2.0, n_samples)
-    roc_vals = np.random.normal(0.0, 0.5, n_samples)
-    mean_vals = temp_vals + np.random.normal(0.0, 0.3, n_samples)
-    std_vals = np.abs(np.random.normal(1.0, 0.2, n_samples)) + 0.1
-    z_vals = roc_vals / std_vals
-    cross_dev = np.random.normal(0.0, 0.4, n_samples)
-    min_prev = np.full(n_samples, 180.0)
-    win_sz = np.full(n_samples, 20.0)
-    peer_sz = np.full(n_samples, 2.0)
-    type_temp = np.ones(n_samples)
-    type_hum = np.zeros(n_samples)
-    type_press = np.zeros(n_samples)
+    # Generate realistic multi-sensor samples for temperature, humidity, pressure
+    # across normal operational distributions to eliminate sensor-type bias.
+    configs = {
+        "temperature": {"base": 25.0, "amp": 3.0, "noise": 0.6},
+        "humidity": {"base": 50.0, "amp": 8.0, "noise": 2.0},
+        "pressure": {"base": 1010.0, "amp": 1.5, "noise": 0.4},
+    }
+    zones = ["zone-a", "zone-b", "zone-c"]
+    zone_offsets = {"zone-a": 0.0, "zone-b": 0.8, "zone-c": -0.6}
 
-    X_baseline = np.column_stack([
-        temp_vals,
-        roc_vals,
-        mean_vals,
-        std_vals,
-        z_vals,
-        cross_dev,
-        min_prev,
-        win_sz,
-        peer_sz,
-        type_temp,
-        type_hum,
-        type_press,
-    ]).astype(np.float32)
+    normal_records = []
+    # Generate 5 days of normal multi-sensor telemetry with realistic cross-sensor peer dynamics
+    total_steps = 40
+    step_readings = []
+    for step in range(total_steps):
+        hour = (step * 3) % 24
+        rad = (hour / 24.0) * 2 * np.pi
+        sin_t = float(np.sin(rad))
+        cos_t = float(np.cos(rad))
+        
+        readings_at_step = {}
+        for st, cfg in configs.items():
+            readings_at_step[st] = {}
+            for zone in zones:
+                daily = sin_t * cfg["amp"]
+                noise = float(np.random.normal(0, cfg["noise"]))
+                val = float(cfg["base"] + zone_offsets[zone] + daily + noise)
+                readings_at_step[st][zone] = round(val, 2)
+        step_readings.append((sin_t, cos_t, readings_at_step))
 
-    model = IsolationForestAnomalyModel(name="isolation_forest", version="v1.0.0")
-    model.fit(X_baseline)
+    history_buffers: Dict[str, List[float]] = {}
+    for sin_t, cos_t, readings_at_step in step_readings:
+        for st, cfg in configs.items():
+            for zone in zones:
+                entity_id = f"{zone}-{st}"
+                val = readings_at_step[st][zone]
+                hist = history_buffers.setdefault(entity_id, [])
+                hist.append(val)
+
+                peers = [readings_at_step[st][z] for z in zones if z != zone]
+                p_mean = float(np.mean(peers))
+                p_std = float(np.std(peers)) if len(peers) > 1 else cfg["noise"]
+
+                fast_hist = hist[-5:]
+                slow_hist = hist[-20:]
+                fast_mean = float(np.mean(fast_hist))
+                fast_std = float(np.std(fast_hist)) if len(fast_hist) > 1 else cfg["noise"]
+                slow_mean = float(np.mean(slow_hist))
+                slow_std = float(np.std(slow_hist)) if len(slow_hist) > 1 else cfg["noise"]
+
+                if fast_std < 0.1:
+                    fast_std = 0.1
+                if slow_std < 0.1:
+                    slow_std = 0.1
+
+                roc = float(val - hist[-2]) if len(hist) > 1 else 0.0
+                z_score = float((val - slow_mean) / slow_std) if len(hist) > 1 else 0.0
+                vol_ratio = float((fast_std + 0.01) / (slow_std + 0.01))
+                mean_div = float(fast_mean - slow_mean)
+
+                min_scale = {"temperature": 0.6, "humidity": 2.0, "pressure": 0.4}.get(st, 0.5)
+                eff_peer_std = max(p_std, min_scale)
+                peer_res = float((val - p_mean) / eff_peer_std)
+
+                normal_records.append({
+                    "entityId": entity_id,
+                    "values": {"value": val},
+                    "features": {
+                        "value": val,
+                        "rateOfChange": roc,
+                        "rollingMean": slow_mean,
+                        "rollingStd": slow_std,
+                        "historicalZScore": z_score,
+                        "crossSensorMean": p_mean,
+                        "crossSensorStd": p_std,
+                        "crossSensorDeviation": peer_res,
+                        "normalizedPeerResidual": peer_res,
+                        "minutesSincePrevious": 180.0,
+                        "historyWindowSize": len(slow_hist),
+                        "peerGroupSize": 2.0,
+                        "type": st,
+                        "timeOfDaySin": sin_t,
+                        "timeOfDayCos": cos_t,
+                        "fastRollingMean": fast_mean,
+                        "fastRollingStd": fast_std,
+                        "volatilityRatio": vol_ratio,
+                        "meanDivergence": mean_div,
+                    },
+                    "_meta": {"isAnomalySeed": False, "anomalyType": None},
+                })
+
+    # Generate synthetic validation partition with controlled anomaly signatures
+    val_records = []
+    val_labels = []
+    for r in normal_records[-60:]:
+        val_records.append(r)
+        val_labels.append(0)
+
+    # Injected validation anomalies
+    val_anomalies = [
+        # Implausible jump
+        {"st": "temperature", "base": 25.0, "val": 80.0, "roc": 55.0, "z": 18.0, "vol": 6.5, "peer": 10.0, "type": "implausible_jump"},
+        {"st": "pressure", "base": 1010.0, "val": 1070.0, "roc": 60.0, "z": 15.0, "vol": 7.0, "peer": 10.0, "type": "implausible_jump"},
+        # Historical deviation
+        {"st": "pressure", "base": 1010.0, "val": 998.0, "roc": 2.0, "z": -6.0, "vol": 1.2, "peer": -6.0, "type": "historical_deviation"},
+        {"st": "temperature", "base": 25.0, "val": 5.0, "roc": -22.0, "z": -6.5, "vol": 1.3, "peer": -8.0, "type": "historical_deviation"},
+        # Cross-sensor contradiction
+        {"st": "humidity", "base": 50.0, "val": 12.0, "roc": 1.0, "z": -1.5, "vol": 1.1, "peer": -8.0, "type": "cross_sensor_contradiction"},
+        {"st": "humidity", "base": 50.0, "val": 88.0, "roc": 2.0, "z": 1.2, "vol": 1.0, "peer": 8.0, "type": "cross_sensor_contradiction"},
+    ]
+    for anom in val_anomalies:
+        val_records.append({
+            "entityId": f"zone-a-{anom['st']}",
+            "values": {"value": anom["val"]},
+            "features": {
+                "value": anom["val"],
+                "rateOfChange": anom["roc"],
+                "rollingMean": anom["base"],
+                "rollingStd": 1.0,
+                "historicalZScore": anom["z"],
+                "crossSensorDeviation": anom["peer"],
+                "normalizedPeerResidual": anom["peer"],
+                "minutesSincePrevious": 180.0,
+                "historyWindowSize": 20,
+                "peerGroupSize": 2,
+                "type": anom["st"],
+                "timeOfDaySin": 0.0,
+                "timeOfDayCos": 1.0,
+                "fastRollingMean": anom["val"],
+                "fastRollingStd": anom["vol"],
+                "volatilityRatio": anom["vol"],
+                "meanDivergence": anom["val"] - anom["base"],
+            },
+            "_meta": {"isAnomalySeed": True, "anomalyType": anom["type"]},
+        })
+        val_labels.append(1)
+
+    X_train, _ = extract_feature_matrix(normal_records[:-60])
+    X_val, _ = extract_feature_matrix(val_records)
+    y_val = np.array(val_labels, dtype=int)
+
+    model = IsolationForestAnomalyModel(
+        name="isolation_forest",
+        version="v1.2.0",
+        hyperparameters={
+            "n_estimators": 150,
+            "contamination": 0.03,
+            "random_state": 42,
+            "max_samples": "auto",
+        },
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+    )
+    model.fit(X_train)
+
+    # Calibrate threshold on the independent validation set
+    _, _, val_norm = model.predict_scores(X_val)
+    best_thresh = 0.54
+    best_score = -1.0
+    for candidate in np.linspace(0.52, 0.70, 37):
+        val_preds = (val_norm >= candidate).astype(int)
+        val_m = calculate_metrics(y_val.tolist(), val_preds.tolist())
+        # Penalize false positives strongly while preserving high recall
+        score = val_m["f1"] + 2.5 * val_m["specificity"]
+        if score > best_score:
+            best_score = score
+            best_thresh = float(candidate)
+
+    model.hyperparameters["calibrated_threshold"] = best_thresh
+
     registry.register_model(
         model=model,
-        metrics={"baseline_samples": n_samples},
+        metrics={
+            "baseline_samples": len(normal_records[:-60]),
+            "val_samples": len(val_records),
+            "calibrated_threshold": best_thresh,
+            "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        },
         status="active",
         make_active=True,
     )
-    print("[REFORGE ML] Baseline Isolation Forest v1.0.0 registered and active.")
+    print(f"[REFORGE ML] Multi-sensor Baseline Isolation Forest v1.2.0 registered and active (threshold={best_thresh:.3f}).")
 
 
 @asynccontextmanager
@@ -169,11 +312,10 @@ def predict(request: PredictRequest):
     iso_now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     try:
-        X, _ = extract_feature_matrix(items_as_dicts)
+        X, feat_names, cleaned_feats = extract_features_for_model(items_as_dicts, model)
         is_anomalies, raw_scores, normalized_scores = model.predict_scores(X)
 
         for i, raw_dict in enumerate(items_as_dicts):
-            cleaned_feat = extract_feature_vector(raw_dict)[1]
             predictions.append(
                 PredictionItem(
                     model_name=model.name,
@@ -181,7 +323,7 @@ def predict(request: PredictRequest):
                     is_anomaly=bool(is_anomalies[i]),
                     raw_score=float(raw_scores[i]),
                     normalized_score=float(normalized_scores[i]),
-                    features_used=cleaned_feat,
+                    features_used=cleaned_feats[i] if i < len(cleaned_feats) else extract_feature_vector(raw_dict)[1],
                     status="success",
                     timestamp=iso_now,
                 )
@@ -228,7 +370,7 @@ def evaluate(request: EvaluateRequest):
             detail="No evaluation records provided.",
         )
 
-    X, _ = extract_feature_matrix(records)
+    X, _, _ = extract_features_for_model(records, model)
     is_anomalies, _, normalized_scores = model.predict_scores(X)
 
     y_true: List[int] = []
@@ -266,6 +408,7 @@ def evaluate(request: EvaluateRequest):
         recall=metrics["recall"],
         f1=metrics["f1"],
         specificity=metrics["specificity"],
+        fpr=metrics.get("fpr"),
         roc_auc=metrics.get("roc_auc"),
         pr_auc=metrics.get("pr_auc"),
         by_anomaly_type=metrics.get("by_anomaly_type", {}),
@@ -292,35 +435,79 @@ def train(request: TrainRequest):
         y_labels.append(1 if is_anomaly else 0)
     y = np.array(y_labels, dtype=int)
 
-    # Train / test split to evaluate candidate model honestly on held-out data
-    stratify = y if len(np.unique(y)) > 1 and np.min(np.bincount(y)) >= 2 else None
-    X_train, X_test, y_train, y_test = train_test_split(
+    # 3-Way Independent Partitions: Train (70%), Validation (15%), Held-out Test (15%)
+    # This guarantees threshold calibration occurs strictly on validation data without leakage.
+    stratify = y if len(np.unique(y)) > 1 and np.min(np.bincount(y)) >= 3 else None
+    X_train, X_temp, y_train, y_temp = train_test_split(
         X,
         y,
-        test_size=request.test_size,
+        test_size=0.30,
         random_state=request.random_state,
         stratify=stratify,
     )
 
+    stratify_temp = y_temp if len(np.unique(y_temp)) > 1 and np.min(np.bincount(y_temp)) >= 2 else None
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp,
+        y_temp,
+        test_size=0.50,
+        random_state=request.random_state,
+        stratify=stratify_temp,
+    )
+
     version_str = request.version or f"v{int(time.time())}"
     algo_type = request.model_type.lower()
+    hp = dict(request.hyperparameters or {})
+
+    calibrated_thresh = 0.50
 
     if algo_type == "isolation_forest":
         model = IsolationForestAnomalyModel(
             name="isolation_forest",
             version=version_str,
-            hyperparameters=request.hyperparameters,
+            hyperparameters=hp,
         )
-        # Isolation Forest is unsupervised: fits on train data
+        # Isolation Forest is unsupervised: fits on training partition
         model.fit(X_train)
+
+        # Calibrate threshold on VALIDATION partition only (prevent test leakage)
+        if len(np.unique(y_val)) > 1:
+            _, _, val_norm = model.predict_scores(X_val)
+            best_thresh = 0.50
+            best_score = -1.0
+            for candidate in np.linspace(0.40, 0.80, 41):
+                val_preds = (val_norm >= candidate).astype(int)
+                val_m = calculate_metrics(y_val.tolist(), val_preds.tolist())
+                # Prioritize F1 while strongly penalizing false alarms via high specificity weight
+                score = val_m["f1"] + 1.2 * val_m["specificity"]
+                if score > best_score:
+                    best_score = score
+                    best_thresh = float(candidate)
+            calibrated_thresh = best_thresh
+            model.hyperparameters["calibrated_threshold"] = calibrated_thresh
+
     elif algo_type == "random_forest":
         model = RandomForestAnomalyModel(
             name="random_forest",
             version=version_str,
-            hyperparameters=request.hyperparameters,
+            hyperparameters=hp,
+            feature_schema_version=FEATURE_SCHEMA_VERSION,
         )
         try:
             model.fit(X_train, y_train)
+            if len(np.unique(y_val)) > 1:
+                _, _, val_norm = model.predict_scores(X_val)
+                best_thresh = 0.50
+                best_score = -1.0
+                for candidate in np.linspace(0.40, 0.80, 41):
+                    val_preds = (val_norm >= candidate).astype(int)
+                    val_m = calculate_metrics(y_val.tolist(), val_preds.tolist())
+                    score = val_m["f1"] + 1.2 * val_m["specificity"]
+                    if score > best_score:
+                        best_score = score
+                        best_thresh = float(candidate)
+                calibrated_thresh = best_thresh
+                model.hyperparameters["calibrated_threshold"] = calibrated_thresh
         except ValueError as ve:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -332,9 +519,9 @@ def train(request: TrainRequest):
             detail=f"Unsupported model type '{request.model_type}'. Choose 'isolation_forest' or 'random_forest'.",
         )
 
-    # Evaluate on held-out test data
-    test_preds, _, test_scores = model.predict_scores(X_test)
-    metrics = calculate_metrics(
+    # Evaluate candidate model on COMPLETELY HELD-OUT test partition
+    test_preds, _, test_scores = model.predict_scores(X_test, threshold=calibrated_thresh)
+    test_metrics = calculate_metrics(
         y_true=y_test.tolist(),
         y_pred=[int(p) for p in test_preds],
         scores=[float(s) for s in test_scores],
@@ -343,7 +530,7 @@ def train(request: TrainRequest):
     # Register as candidate (requires explicit promotion)
     key = registry.register_model(
         model=model,
-        metrics=metrics,
+        metrics=test_metrics,
         status="candidate",
         make_active=False,
     )
@@ -353,9 +540,9 @@ def train(request: TrainRequest):
         model_version=model.version,
         train_records=len(X_train),
         test_records=len(X_test),
-        metrics=metrics,
+        metrics=test_metrics,
         status="candidate",
-        message=f"Model {key} trained and registered as candidate. Evaluation on held-out test set: F1={metrics['f1']:.3f}, Precision={metrics['precision']:.3f}, Recall={metrics['recall']:.3f}.",
+        message=f"Model {key} trained on {len(X_train)} samples, threshold calibrated on {len(X_val)} validation samples ({calibrated_thresh:.2f}). Held-out test set evaluation: F1={test_metrics['f1']:.3f}, Precision={test_metrics['precision']:.3f}, Specificity={test_metrics['specificity']:.3f}.",
     )
 
 

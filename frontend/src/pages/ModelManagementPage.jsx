@@ -47,8 +47,8 @@ export default function ModelManagementPage() {
     }
   }
 
-  async function handlePromote(version) {
-    if (!confirm(`Are you sure you want to promote version ${version} to active production model?`)) {
+  async function handlePromote(modelName, version) {
+    if (!confirm(`Are you sure you want to promote ${modelName} (${version}) to active production model?`)) {
       return;
     }
     setActionLoading(true);
@@ -56,9 +56,10 @@ export default function ModelManagementPage() {
     setSuccessMsg("");
     try {
       const res = await apiClient.post(`/models/${version}/promote`, {
+        modelName,
         reviewer: "authorized-admin",
       });
-      setSuccessMsg(`Model ${res.data.activeModel?.version || version} promoted to ACTIVE.`);
+      setSuccessMsg(`Model ${modelName}:${version} successfully promoted to ACTIVE.`);
       await loadModels();
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Promotion failed.");
@@ -144,8 +145,12 @@ export default function ModelManagementPage() {
               value={modelType}
               onChange={(e) => setModelType(e.target.value)}
             >
-              <option value="isolation_forest">Isolation Forest (Unsupervised Baseline)</option>
+              <option value="hybrid_detection">Hybrid Consensus Detector (Calibrated)</option>
+              <option value="lightgbm">LightGBM (Supervised Gradient Booster)</option>
+              <option value="xgboost">XGBoost (Supervised Gradient Booster)</option>
               <option value="random_forest">Random Forest (Supervised Benchmark)</option>
+              <option value="isolation_forest">Isolation Forest (Unsupervised Baseline)</option>
+              <option value="temporal_statistical">Temporal Statistical Detector</option>
             </select>
           </div>
 
@@ -211,7 +216,7 @@ export default function ModelManagementPage() {
                       <button
                         className="btn btn-neutral"
                         style={{ padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
-                        onClick={() => handlePromote(m.version)}
+                        onClick={() => handlePromote(m.model_name, m.version)}
                         disabled={actionLoading}
                       >
                         Promote to Active

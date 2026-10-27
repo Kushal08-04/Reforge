@@ -1,3 +1,5 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 require("dotenv").config();
 
 const express = require("express");
@@ -14,6 +16,7 @@ const comparisonRoutes = require("./routes/comparison.routes");
 const evaluationRoutes = require("./routes/evaluation.routes");
 const modelRoutes = require("./routes/model.routes");
 const repairRoutes = require("./routes/repair.routes");
+const exportRoutes = require("./routes/export.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,6 +41,7 @@ app.use("/api/comparison", comparisonRoutes);
 app.use("/api/evaluation", evaluationRoutes);
 app.use("/api/models", modelRoutes);
 app.use("/api/repairs", repairRoutes);
+app.use("/api/export", exportRoutes);
 
 app.get("/", (req, res) => {
   res.send("REFORGE server is running. See /api/health for status.");

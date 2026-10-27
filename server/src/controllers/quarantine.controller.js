@@ -131,4 +131,106 @@ async function reviewQuarantine(req, res) {
   }
 }
 
-module.exports = { listQuarantine, getQuarantineDetail, reviewQuarantine };
+/**
+ * POST /api/quarantine/heal
+ * Iteratively heals flagged observations in the isolated sandbox until risk score < 0.30.
+ * Supports:
+ *   - tier: "low_risk" (risk <= 0.60, single-button auto-repair)
+ *   - tier: "high_risk" (risk > 0.60, batch or individual)
+ *   - recordIds: string[] (specific batch)
+ *   - quarantineRecordId: string (single record)
+ */
+async function healQuarantineRecords(req, res) {
+  try {
+    const { tier, recordIds, quarantineRecordId, reviewer = "lead-data-engineer" } = req.body;
+    const dataRepairService = require("../services/dataRepairService");
+
+    let targetIds = [];
+    if (quarantineRecordId) {
+      targetIds = [quarantineRecordId];
+    } else if (Array.isArray(recordIds) && recordIds.length > 0) {
+      targetIds = recordIds;
+    } else if (tier === "low_risk") {
+      // Find all pending low-risk observations (risk <= 0.60 or classification === 'suspicious')
+      const lowRiskRecords = await QuarantineRecord.find({
+        reviewStatus: "pending",
+        $or: [
+          { semanticRiskScore: { $lte: 0.60 } },
+          { ruleRiskScore: { $lte: 0.60 } },
+          { classification: "suspicious" },
+        ],
+      })
+        .limit(200)
+        .lean();
+      targetIds = lowRiskRecords.map((r) => r._id.toString());
+    } else if (tier === "high_risk") {
+      // Find all pending high-risk observations (risk > 0.60 or classification === 'invalid')
+      const highRiskRecords = await QuarantineRecord.find({
+        reviewStatus: "pending",
+        $or: [
+          { semanticRiskScore: { $gt: 0.60 } },
+          { ruleRiskScore: { $gt: 0.60 } },
+          { classification: "invalid" },
+        ],
+      })
+        .limit(200)
+        .lean();
+      targetIds = highRiskRecords.map((r) => r._id.toString());
+    } else if (tier === "all") {
+      const allPending = await QuarantineRecord.find({ reviewStatus: "pending" }).limit(200).lean();
+      targetIds = allPending.map((r) => r._id.toString());
+    }
+
+    if (targetIds.length === 0) {
+      return res.json({
+        message: "No pending observations found matching the specified tier.",
+        healedCount: 0,
+        results: [],
+      });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const qId of targetIds) {
+      try {
+        const healResult = await dataRepairService.healObservationInSandbox({
+          quarantineRecordId: qId,
+          actor: reviewer,
+        });
+        results.push(healResult);
+        successCount++;
+      } catch (itemErr) {
+        failCount++;
+        results.push({
+          quarantineRecordId: qId,
+          success: false,
+          error: itemErr.message,
+        });
+      }
+    }
+
+    const remainingPending = await QuarantineRecord.countDocuments({ reviewStatus: "pending" });
+
+    res.json({
+      success: true,
+      tier: tier || "custom",
+      totalTargeted: targetIds.length,
+      healedCount: successCount,
+      failedCount: failCount,
+      remainingPending,
+      results,
+    });
+  } catch (err) {
+    console.error("[REFORGE] healQuarantineRecords error:", err);
+    res.status(500).json({ error: err.message || "Failed to heal quarantine records." });
+  }
+}
+
+module.exports = {
+  listQuarantine,
+  getQuarantineDetail,
+  reviewQuarantine,
+  healQuarantineRecords,
+};
