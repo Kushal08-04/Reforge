@@ -270,7 +270,7 @@ async function exportDatasetToGitHub(req, res) {
 
     // 2. Build Markdown Audit Report content
     const changes = version.changes || [];
-    let mdReport = `# REFORGE Healed Dataset Audit Report — Version ${version.versionId}\n\n`;
+    let mdReport = `# REFORGE Healed Dataset Audit Report - Version ${version.versionId}\n\n`;
     mdReport += `**Exported At**: ${new Date().toISOString()}\n`;
     mdReport += `**Base Baseline**: ${version.baseVersion || "v1.0.0"}\n`;
     mdReport += `**Total Records**: ${records.length}\n`;

@@ -20,7 +20,7 @@
 
 **Reforge** is a semantic validation engine for IoT sensor data pipelines.
 
-Traditional ETL pipelines primarily determine whether incoming records are structurally valid—for example, whether required fields exist, data types are correct, and values follow the expected schema.
+Traditional ETL pipelines primarily determine whether incoming records are structurally valid-for example, whether required fields exist, data types are correct, and values follow the expected schema.
 
 Reforge goes one step further.
 
@@ -753,7 +753,7 @@ Future services such as `ml-service/`, `simulator/`, `database/`, and Docker inf
 
 ---
 
-# 🚀 Quick Start — Current MVP
+# 🚀 Quick Start - Current MVP
 
 ## Prerequisites
 
@@ -926,7 +926,7 @@ This keeps the MVP focused on the project's primary research problem:
 
 # 🗺️ Roadmap
 
-## Phase 1 — Semantic Validation MVP
+## Phase 1 - Semantic Validation MVP
 
 * [x] Sensor ingestion
 * [x] Raw-data preservation
@@ -947,7 +947,7 @@ This keeps the MVP focused on the project's primary research problem:
 * [x] Synthetic dataset generation
 * [x] Ground-truth evaluation
 
-## Phase 2 — Advanced Data Intelligence
+## Phase 2 - Advanced Data Intelligence
 
 * [ ] Isolation Forest
 * [ ] Random Forest baseline
@@ -958,7 +958,7 @@ This keeps the MVP focused on the project's primary research problem:
 * [ ] Model retraining
 * [ ] Larger fault-injection benchmark
 
-## Phase 3 — Scalable Data Pipeline
+## Phase 3 - Scalable Data Pipeline
 
 * [ ] Redis
 * [ ] BullMQ
@@ -969,7 +969,7 @@ This keeps the MVP focused on the project's primary research problem:
 * [ ] Distributed ingestion
 * [ ] Real-time sensor streams
 
-## Phase 4 — Self-Healing ETL
+## Phase 4 - Self-Healing ETL
 
 * [ ] Automated failure diagnosis
 * [ ] LLM-assisted repair generation
@@ -980,7 +980,7 @@ This keeps the MVP focused on the project's primary research problem:
 * [ ] Monitoring
 * [ ] Automated rollback
 
-## Phase 5 — Production Infrastructure
+## Phase 5 - Production Infrastructure
 
 * [ ] Dockerized services
 * [ ] Kubernetes
@@ -1116,7 +1116,7 @@ This project is licensed under the **MIT License**.
 
 # 👨‍💻 Project
 
-**Reforge — Semantic Validation Engine for IoT Data Pipelines**
+**Reforge - Semantic Validation Engine for IoT Data Pipelines**
 
 A research-oriented project exploring:
 

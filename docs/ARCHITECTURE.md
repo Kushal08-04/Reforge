@@ -1,4 +1,4 @@
-# REFORGE — Architecture (MVP)
+# REFORGE - Architecture (MVP)
 
 ## What REFORGE does
 
@@ -10,7 +10,7 @@ queue with a full audit trail:
 POST /api/ingest
        │
        ▼
-Raw Storage (RawObservation — immutable, never mutated)
+Raw Storage (RawObservation - immutable, never mutated)
        │
        ▼
 Schema/Structural Validation (Joi: required fields, types, format)
@@ -26,7 +26,7 @@ Schema/Structural Validation (Joi: required fields, types, format)
        - cross-sensor comparison vs. same-type peers in nearby zones
             │
             ▼
-     Rule Engine (ruleEngine.js) — 4 explainable rules
+     Rule Engine (ruleEngine.js) - 4 explainable rules
        - rateOfChangeRule
        - historicalZScoreRule
        - crossSensorRule
@@ -60,7 +60,7 @@ To get "cross-sensor context" (Section 6 of the project handoff) without a
 separate sensor-relationship config table, this MVP uses a naming
 convention: `entityId = "<zone>-<type>"`, e.g. `zone-a-temperature`,
 `zone-b-temperature`, `zone-c-temperature`. The feature builder groups
-peers by matching `<type>` across zones — sensors of the same kind in
+peers by matching `<type>` across zones - sensors of the same kind in
 different zones are expected to broadly agree, so if one diverges sharply
 from the others in the same time window, that's cross-sensor evidence.
 
@@ -72,7 +72,7 @@ from a naming convention.
 ## Data model
 
 ```
-RawObservation          (immutable — the ground truth of what was received)
+RawObservation          (immutable - the ground truth of what was received)
    │ referenced by
    ▼
 ValidationResult        (schema result + feature snapshot + rule evidence

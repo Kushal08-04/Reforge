@@ -27,7 +27,7 @@ export default function QuarantinePage() {
     if (typeof score === "number" && !isNaN(score)) {
       return score.toFixed(2);
     }
-    return "—";
+    return "-";
   }
 
   // Blob downloader ensuring exact file extensions (.csv, .xlsx, .pdf)
@@ -358,8 +358,8 @@ export default function QuarantinePage() {
                 {repairedRecords.slice(0, 30).map((r) => (
                   <tr key={r._id}>
                     <td><strong>{r.entityId}</strong></td>
-                    <td><span style={{ color: "var(--invalid)", textDecoration: "line-through" }}>{r.correctedValues?.previousValue ?? "—"}</span></td>
-                    <td><span style={{ color: "var(--valid)", fontWeight: "bold", fontSize: "1.05rem" }}>{r.correctedValues?.value ?? "—"}</span></td>
+                    <td><span style={{ color: "var(--invalid)", textDecoration: "line-through" }}>{r.correctedValues?.previousValue ?? "-"}</span></td>
+                    <td><span style={{ color: "var(--valid)", fontWeight: "bold", fontSize: "1.05rem" }}>{r.correctedValues?.value ?? "-"}</span></td>
                     <td><code>{r.correctedValues?.strategy || "cascade_optimal"}</code></td>
                     <td><span className="badge badge-success">&lt; 0.30 Verified</span></td>
                     <td><span className="badge badge-success">REPAIRED</span></td>

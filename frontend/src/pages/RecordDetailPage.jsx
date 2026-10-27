@@ -21,8 +21,9 @@ export default function RecordDetailPage() {
   const [notes, setNotes] = useState("");
   const [correctedValue, setCorrectedValue] = useState("");
   const [showCorrectForm, setShowCorrectForm] = useState(false);
-  const [diagnosing, setDiagnosing] = useState(false);
   const [diagnoseError, setDiagnoseError] = useState("");
+  const [healing, setHealing] = useState(false);
+  const [healSuccessMsg, setHealSuccessMsg] = useState("");
 
   useEffect(() => {
     dispatch(fetchQuarantineDetail(id));
@@ -47,10 +48,6 @@ export default function RecordDetailPage() {
     dispatch(submitReview(payload));
   }
 
-  const [repairMode, setRepairMode] = useState("DATA_REPAIR");
-  const [healing, setHealing] = useState(false);
-  const [healSuccessMsg, setHealSuccessMsg] = useState("");
-
   async function handleAutoHeal() {
     setHealing(true);
     setHealSuccessMsg("");
@@ -69,23 +66,6 @@ export default function RecordDetailPage() {
       setDiagnoseError(err.response?.data?.error || err.message || "Auto-heal failed.");
     } finally {
       setHealing(false);
-    }
-  }
-
-  async function handleDiagnoseAndRepair(selectedMode = repairMode) {
-    setDiagnosing(true);
-    setDiagnoseError("");
-    try {
-      const res = await apiClient.post("/repairs/diagnose", {
-        quarantineRecordId: quarantineRecord._id,
-        reviewer,
-        mode: selectedMode,
-      });
-      const proposal = res.data.proposal;
-      navigate(`/repairs/${proposal._id}`);
-    } catch (err) {
-      setDiagnoseError(err.response?.data?.error || err.message || "Failed to trigger diagnosis.");
-      setDiagnosing(false);
     }
   }
 
@@ -132,8 +112,8 @@ export default function RecordDetailPage() {
           <div><span className="detail-label">Timestamp</span><div>{new Date(rawObservation.timestamp).toLocaleString()}</div></div>
           <div><span className="detail-label">Raw Value</span><div><strong>{rawObservation.values?.value}</strong></div></div>
           <div><span className="detail-label">Official Classification</span><div><ClassificationBadge classification={validationResult.classification} /></div></div>
-          <div><span className="detail-label">Rule Risk Score</span><div>{validationResult.ruleRiskScore !== null && validationResult.ruleRiskScore !== undefined ? validationResult.ruleRiskScore.toFixed(2) : (validationResult.semanticRiskScore?.toFixed(2) ?? "—")}</div></div>
-          <div><span className="detail-label">ML Anomaly Score</span><div>{mlResult.anomalyScore !== undefined ? mlResult.anomalyScore.toFixed(2) : "—"}</div></div>
+          <div><span className="detail-label">Rule Risk Score</span><div>{validationResult.ruleRiskScore !== null && validationResult.ruleRiskScore !== undefined ? validationResult.ruleRiskScore.toFixed(2) : (validationResult.semanticRiskScore?.toFixed(2) ?? "-")}</div></div>
+          <div><span className="detail-label">ML Anomaly Score</span><div>{mlResult.anomalyScore !== undefined ? mlResult.anomalyScore.toFixed(2) : "-"}</div></div>
           <div><span className="detail-label">Comparison Category</span><div><span className="badge badge-info">{validationResult.comparisonCategory ? validationResult.comparisonCategory.replace(/_/g, " ") : "n/a"}</span></div></div>
           <div><span className="detail-label">Review Status</span><div><span className={`badge badge-review-${quarantineRecord.reviewStatus}`}>{quarantineRecord.reviewStatus}</span></div></div>
         </div>
@@ -193,7 +173,7 @@ export default function RecordDetailPage() {
                   ✓ This observation was <strong>Auto-Healed in Sandbox</strong> by {quarantineRecord.reviewer} on {new Date(quarantineRecord.reviewedAt).toLocaleString()}.
                 </p>
                 <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.5rem", fontSize: "0.95rem" }}>
-                  <div>Original: <strong style={{ color: "var(--invalid)", textDecoration: "line-through" }}>{quarantineRecord.correctedValues?.previousValue ?? "—"}</strong></div>
+                  <div>Original: <strong style={{ color: "var(--invalid)", textDecoration: "line-through" }}>{quarantineRecord.correctedValues?.previousValue ?? "-"}</strong></div>
                   <div>Healed: <strong style={{ color: "var(--valid)", fontSize: "1.1rem" }}>{quarantineRecord.correctedValues?.value}</strong></div>
                   <div>Strategy: <code>{quarantineRecord.correctedValues?.strategy}</code></div>
                   <div>Risk: <span className="badge badge-success">&lt; 0.30 Verified</span></div>

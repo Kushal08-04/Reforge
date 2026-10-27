@@ -80,10 +80,10 @@ export default function EvaluationPage() {
 
           <h2 style={{ fontSize: "1.1rem", fontWeight: 600, margin: "1.25rem 0 0.5rem" }}>Hybrid Engine Performance</h2>
           <div className="stat-grid">
-            <StatCard label="Hybrid F1-Score" value={hybrid.f1 ? hybrid.f1.toFixed(3) : "—"} tone="valid" />
-            <StatCard label="Precision" value={hybrid.precision !== undefined ? `${(hybrid.precision * 100).toFixed(1)}%` : "—"} tone="valid" />
-            <StatCard label="Recall" value={hybrid.recall !== undefined ? `${(hybrid.recall * 100).toFixed(1)}%` : "—"} tone="valid" />
-            <StatCard label="Specificity" value={hybrid.specificity !== undefined ? `${(hybrid.specificity * 100).toFixed(1)}%` : "—"} tone="neutral" />
+            <StatCard label="Hybrid F1-Score" value={hybrid.f1 ? hybrid.f1.toFixed(3) : "-"} tone="valid" />
+            <StatCard label="Precision" value={hybrid.precision !== undefined ? `${(hybrid.precision * 100).toFixed(1)}%` : "-"} tone="valid" />
+            <StatCard label="Recall" value={hybrid.recall !== undefined ? `${(hybrid.recall * 100).toFixed(1)}%` : "-"} tone="valid" />
+            <StatCard label="Specificity" value={hybrid.specificity !== undefined ? `${(hybrid.specificity * 100).toFixed(1)}%` : "-"} tone="neutral" />
             <StatCard label="True Positives (Caught)" value={hybrid.tp ?? 0} tone="valid" />
             <StatCard label="False Positives (Alarms)" value={hybrid.fp ?? 0} tone={hybrid.fp ? "suspicious" : "neutral"} />
             <StatCard label="True Negatives (Clean)" value={hybrid.tn ?? 0} tone="neutral" />
@@ -106,51 +106,51 @@ export default function EvaluationPage() {
                 <tbody>
                   <tr>
                     <td><strong>Precision</strong></td>
-                    <td>{rule.precision !== undefined ? `${(rule.precision * 100).toFixed(1)}%` : "—"}</td>
-                    <td>{ml.precision !== undefined ? `${(ml.precision * 100).toFixed(1)}%` : "—"}</td>
-                    <td className="highlight-row">{hybrid.precision !== undefined ? `${(hybrid.precision * 100).toFixed(1)}%` : "—"}</td>
+                    <td>{rule.precision !== undefined ? `${(rule.precision * 100).toFixed(1)}%` : "-"}</td>
+                    <td>{ml.precision !== undefined ? `${(ml.precision * 100).toFixed(1)}%` : "-"}</td>
+                    <td className="highlight-row">{hybrid.precision !== undefined ? `${(hybrid.precision * 100).toFixed(1)}%` : "-"}</td>
                   </tr>
                   <tr>
                     <td><strong>Recall (Detection Rate)</strong></td>
-                    <td>{rule.recall !== undefined ? `${(rule.recall * 100).toFixed(1)}%` : "—"}</td>
-                    <td>{ml.recall !== undefined ? `${(ml.recall * 100).toFixed(1)}%` : "—"}</td>
-                    <td className="highlight-row">{hybrid.recall !== undefined ? `${(hybrid.recall * 100).toFixed(1)}%` : "—"}</td>
+                    <td>{rule.recall !== undefined ? `${(rule.recall * 100).toFixed(1)}%` : "-"}</td>
+                    <td>{ml.recall !== undefined ? `${(ml.recall * 100).toFixed(1)}%` : "-"}</td>
+                    <td className="highlight-row">{hybrid.recall !== undefined ? `${(hybrid.recall * 100).toFixed(1)}%` : "-"}</td>
                   </tr>
                   <tr>
                     <td><strong>F1-Score</strong></td>
-                    <td>{rule.f1 !== undefined ? rule.f1.toFixed(3) : "—"}</td>
-                    <td>{ml.f1 !== undefined ? ml.f1.toFixed(3) : "—"}</td>
-                    <td className="highlight-row">{hybrid.f1 !== undefined ? hybrid.f1.toFixed(3) : "—"}</td>
+                    <td>{rule.f1 !== undefined ? rule.f1.toFixed(3) : "-"}</td>
+                    <td>{ml.f1 !== undefined ? ml.f1.toFixed(3) : "-"}</td>
+                    <td className="highlight-row">{hybrid.f1 !== undefined ? hybrid.f1.toFixed(3) : "-"}</td>
                   </tr>
                   <tr>
                     <td><strong>Specificity</strong></td>
-                    <td>{rule.specificity !== undefined ? `${(rule.specificity * 100).toFixed(1)}%` : "—"}</td>
-                    <td>{ml.specificity !== undefined ? `${(ml.specificity * 100).toFixed(1)}%` : "—"}</td>
-                    <td className="highlight-row">{hybrid.specificity !== undefined ? `${(hybrid.specificity * 100).toFixed(1)}%` : "—"}</td>
+                    <td>{rule.specificity !== undefined ? `${(rule.specificity * 100).toFixed(1)}%` : "-"}</td>
+                    <td>{ml.specificity !== undefined ? `${(ml.specificity * 100).toFixed(1)}%` : "-"}</td>
+                    <td className="highlight-row">{hybrid.specificity !== undefined ? `${(hybrid.specificity * 100).toFixed(1)}%` : "-"}</td>
                   </tr>
                   <tr>
                     <td>True Positives (Caught)</td>
-                    <td>{rule.tp ?? "—"}</td>
-                    <td>{ml.tp ?? "—"}</td>
-                    <td className="highlight-row">{hybrid.tp ?? "—"}</td>
+                    <td>{rule.tp ?? "-"}</td>
+                    <td>{ml.tp ?? "-"}</td>
+                    <td className="highlight-row">{hybrid.tp ?? "-"}</td>
                   </tr>
                   <tr>
                     <td>False Positives (Alarms)</td>
-                    <td>{rule.fp ?? "—"}</td>
-                    <td>{ml.fp ?? "—"}</td>
-                    <td className="highlight-row">{hybrid.fp ?? "—"}</td>
+                    <td>{rule.fp ?? "-"}</td>
+                    <td>{ml.fp ?? "-"}</td>
+                    <td className="highlight-row">{hybrid.fp ?? "-"}</td>
                   </tr>
                   <tr>
                     <td>True Negatives (Clean)</td>
-                    <td>{rule.tn ?? "—"}</td>
-                    <td>{ml.tn ?? "—"}</td>
-                    <td className="highlight-row">{hybrid.tn ?? "—"}</td>
+                    <td>{rule.tn ?? "-"}</td>
+                    <td>{ml.tn ?? "-"}</td>
+                    <td className="highlight-row">{hybrid.tn ?? "-"}</td>
                   </tr>
                   <tr>
                     <td>False Negatives (Missed)</td>
-                    <td>{rule.fn ?? "—"}</td>
-                    <td>{ml.fn ?? "—"}</td>
-                    <td className="highlight-row">{hybrid.fn ?? "—"}</td>
+                    <td>{rule.fn ?? "-"}</td>
+                    <td>{ml.fn ?? "-"}</td>
+                    <td className="highlight-row">{hybrid.fn ?? "-"}</td>
                   </tr>
                 </tbody>
               </table>

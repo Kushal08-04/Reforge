@@ -129,7 +129,7 @@ export default function ComparisonPage() {
                   return (
                     <tr key={r.validationResultId} style={isDisagree ? { background: "#fffdf5" } : {}}>
                       <td><strong>{r.entityId}</strong></td>
-                      <td>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : "—"}</td>
+                      <td>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : "-"}</td>
                       <td>{r.value}</td>
                       <td><code>{(r.ruleRiskScore || 0).toFixed(2)}</code></td>
                       <td><ClassificationBadge classification={r.ruleClassification} /></td>

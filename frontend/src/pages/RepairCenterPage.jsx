@@ -132,8 +132,8 @@ export default function RepairCenterPage() {
       sandbox.runtimeIsolation === "docker_container" || sandbox.containerId === "docker_container"
         ? "Docker Container (Network None)"
         : sandbox.runtimeIsolation === "isolated_subprocess" || sandbox.containerId?.includes("subprocess")
-        ? "Isolated Subprocess (Restricted Env)"
-        : sandbox.containerId || "Not Run";
+          ? "Isolated Subprocess (Restricted Env)"
+          : sandbox.containerId || "Not Run";
 
     return (
       <div className="page">
@@ -208,12 +208,12 @@ export default function RepairCenterPage() {
             sandbox.correctedValue ??
             (Array.isArray(sandbox.testResults)
               ? sandbox.testResults.find(
-                  (t) =>
-                    (t.name?.includes("clamped") || t.name?.includes("offset") || t.name?.includes("drift") || t.name?.includes("normal")) &&
-                    t.outputValue !== undefined &&
-                    typeof t.outputValue === "number" &&
-                    (t.status === "PASS" || t.passed)
-                )?.outputValue
+                (t) =>
+                  (t.name?.includes("clamped") || t.name?.includes("offset") || t.name?.includes("drift") || t.name?.includes("normal")) &&
+                  t.outputValue !== undefined &&
+                  typeof t.outputValue === "number" &&
+                  (t.status === "PASS" || t.passed)
+              )?.outputValue
               : undefined);
 
           return (
@@ -231,7 +231,7 @@ export default function RepairCenterPage() {
                   <span className="detail-label" style={{ display: "block", marginBottom: "0.2rem" }}>Raw Quarantined Value</span>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <span style={{ fontSize: "1.5rem", fontWeight: "700", color: "var(--invalid)" }}>
-                      {rawVal !== undefined ? rawVal : "—"}
+                      {rawVal !== undefined ? rawVal : "-"}
                     </span>
                     <span className="badge badge-danger">ANOMALOUS</span>
                   </div>
@@ -258,8 +258,8 @@ export default function RepairCenterPage() {
                   {patch.patchType === "outlier_clamp"
                     ? "Clamps abrupt hardware spike back to previous valid historical observation."
                     : patch.patchType === "calibration_offset"
-                    ? "Applies validated cluster consensus calibration offset."
-                    : "Bounds extreme drift back to within 3σ normal distribution threshold."}
+                      ? "Applies validated cluster consensus calibration offset."
+                      : "Bounds extreme drift back to within 3σ normal distribution threshold."}
                   <div style={{ marginTop: "0.4rem" }}>
                     {sandbox.semanticChecksPassed ? (
                       <span style={{ color: "var(--valid)", fontWeight: "600" }}>✓ Passes REFORGE Rule Engine & Domain Bounds</span>
@@ -410,7 +410,7 @@ export default function RepairCenterPage() {
             <div><span className="detail-label">Runtime Isolation</span><div><code>{isolationLabel}</code></div></div>
             <div><span className="detail-label">Unit Tests Passed</span><div><strong>{sandbox.testsPassed ?? 0} / {sandbox.testsTotal ?? 0}</strong></div></div>
             <div><span className="detail-label">Semantic Check</span><div>{sandbox.semanticChecksPassed ? <span className="badge badge-success">PASSED</span> : (sandbox.status === "NOT_RUN" ? <span className="badge badge-neutral">PENDING</span> : <span className="badge badge-warning">NEEDS_REVIEW</span>)}</div></div>
-            <div><span className="detail-label">Execution Time</span><div>{sandbox.executionTimeMs ? `${sandbox.executionTimeMs} ms` : "—"}</div></div>
+            <div><span className="detail-label">Execution Time</span><div>{sandbox.executionTimeMs ? `${sandbox.executionTimeMs} ms` : "-"}</div></div>
           </div>
           {sandbox.failureReason && (
             <div style={{ marginTop: "0.8rem", padding: "0.6rem 0.8rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "4px", fontSize: "0.85rem", color: "#991b1b" }}>
@@ -442,15 +442,15 @@ export default function RepairCenterPage() {
                             {tr.status || (tr.passed ? "PASS" : "FAIL")}
                           </span>
                         </td>
-                        <td><code>{tr.inputValue !== undefined ? String(tr.inputValue) : "—"}</code></td>
-                        <td><small>{String(tr.expectedOutcome ?? "—")}</small></td>
+                        <td><code>{tr.inputValue !== undefined ? String(tr.inputValue) : "-"}</code></td>
+                        <td><small>{String(tr.expectedOutcome ?? "-")}</small></td>
                         <td>
                           <strong style={{ color: tr.status === "FAIL" || !tr.passed ? "var(--invalid)" : "var(--valid)" }}>
-                            {String(tr.outputValue !== undefined ? tr.outputValue : tr.actualOutcome ?? "—")}
+                            {String(tr.outputValue !== undefined ? tr.outputValue : tr.actualOutcome ?? "-")}
                           </strong>
                           {tr.error && <div style={{ color: "var(--invalid)", fontSize: "0.78rem" }}>{tr.error}</div>}
                         </td>
-                        <td><small>{tr.durationMs ? `${tr.durationMs}ms` : "—"}</small></td>
+                        <td><small>{tr.durationMs ? `${tr.durationMs}ms` : "-"}</small></td>
                       </tr>
                     ))}
                   </tbody>
@@ -668,10 +668,10 @@ export default function RepairCenterPage() {
                         #{r.githubIntegration.prNumber}
                       </a>
                     ) : (
-                      <span className="muted">—</span>
+                      <span className="muted">-</span>
                     )}
                   </td>
-                  <td>{r.createdAt ? new Date(r.createdAt).toLocaleTimeString() : "—"}</td>
+                  <td>{r.createdAt ? new Date(r.createdAt).toLocaleTimeString() : "-"}</td>
                   <td>
                     <Link to={`/repairs/${r._id}`} className="btn btn-neutral" style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem", textDecoration: "none" }}>
                       Inspect &rarr;

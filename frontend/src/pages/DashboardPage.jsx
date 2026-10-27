@@ -125,13 +125,12 @@ export default function DashboardPage() {
                   <td><code>{r.failureCategory}</code></td>
                   <td>{r.proposedPatch?.patchType}</td>
                   <td>
-                    <span className={`badge ${
-                      r.lifecycleState === "VERIFIED" || r.lifecycleState === "APPROVED"
+                    <span className={`badge ${r.lifecycleState === "VERIFIED" || r.lifecycleState === "APPROVED"
                         ? "badge-success"
                         : r.lifecycleState === "SANDBOX_FAILED" || r.lifecycleState === "REJECTED"
-                        ? "badge-danger"
-                        : "badge-info"
-                    }`}>
+                          ? "badge-danger"
+                          : "badge-info"
+                      }`}>
                       {r.lifecycleState}
                     </span>
                   </td>
@@ -171,7 +170,7 @@ export default function DashboardPage() {
                 <td>{e.valid}</td>
                 <td>{e.suspicious}</td>
                 <td>{e.invalid}</td>
-                <td>{e.avgRiskScore !== null && e.avgRiskScore !== undefined ? e.avgRiskScore.toFixed(2) : "—"}</td>
+                <td>{e.avgRiskScore !== null && e.avgRiskScore !== undefined ? e.avgRiskScore.toFixed(2) : "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -197,9 +196,9 @@ export default function DashboardPage() {
             {recentEvents.map((e) => (
               <tr key={e.validationResultId}>
                 <td>{e.entityId}</td>
-                <td>{e.timestamp ? new Date(e.timestamp).toLocaleString() : "—"}</td>
+                <td>{e.timestamp ? new Date(e.timestamp).toLocaleString() : "-"}</td>
                 <td>{e.value}</td>
-                <td>{e.semanticRiskScore !== null && e.semanticRiskScore !== undefined ? e.semanticRiskScore.toFixed(2) : "—"}</td>
+                <td>{e.semanticRiskScore !== null && e.semanticRiskScore !== undefined ? e.semanticRiskScore.toFixed(2) : "-"}</td>
                 <td>{e.mlAnomalyScore !== null && e.mlAnomalyScore !== undefined ? e.mlAnomalyScore.toFixed(2) : "0.00"}</td>
                 <td><ClassificationBadge classification={e.classification} /></td>
                 <td>
@@ -208,7 +207,7 @@ export default function DashboardPage() {
                       {e.comparisonCategory.replace(/_/g, " ")}
                     </span>
                   ) : (
-                    <span className="muted">—</span>
+                    <span className="muted">-</span>
                   )}
                 </td>
                 <td>

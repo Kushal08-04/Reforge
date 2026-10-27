@@ -1,4 +1,4 @@
-# ⚡ REFORGE — Comprehensive Local Setup & Evaluation Guide
+# ⚡ REFORGE - Comprehensive Local Setup & Evaluation Guide
 ## Hybrid Semantic Validation, ML Anomaly Detection, Sandbox Verification & Agentic ETL Repair
 
 This guide walks you through setting up and running **REFORGE** on your local machine (`localhost`). It covers both **Bare-Metal Development** (recommended for active development) and **Docker Compose** (recommended for 1-command deployment), along with instructions for seeding datasets, running automated tests, and demonstrating the complete end-to-end workflow.

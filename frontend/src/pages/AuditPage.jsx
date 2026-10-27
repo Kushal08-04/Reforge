@@ -57,7 +57,7 @@ export default function AuditPage() {
               <div className="timeline-content">
                 <div className="timeline-header">
                   <strong>{ACTION_LABELS[entry.action] || entry.action}</strong>
-                  <span className="muted"> — {new Date(entry.createdAt).toLocaleString()}</span>
+                  <span className="muted"> - {new Date(entry.createdAt).toLocaleString()}</span>
                 </div>
                 <div className="muted">actor: {entry.actor} · engine: {entry.engineVersion}</div>
                 {entry.details && Object.keys(entry.details).length > 0 && (

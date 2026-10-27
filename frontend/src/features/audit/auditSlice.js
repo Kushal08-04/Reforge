@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import apiClient from "../../api/client";
+import { fetchAuditTrail as apiFetchAuditTrail } from "../../api/endpoints";
 
 export const fetchAuditTrail = createAsyncThunk(
   "audit/fetch",
   async (rawObservationId, { rejectWithValue }) => {
     try {
-      const res = await apiClient.get(`/audit/${rawObservationId}`);
-      return res.data;
+      const data = await apiFetchAuditTrail(rawObservationId);
+      return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.error || err.message);
     }
@@ -31,6 +31,7 @@ const auditSlice = createSlice({
     builder
       .addCase(fetchAuditTrail.pending, (state) => {
         state.status = "loading";
+        state.error = null;
       })
       .addCase(fetchAuditTrail.fulfilled, (state, action) => {
         state.status = "succeeded";

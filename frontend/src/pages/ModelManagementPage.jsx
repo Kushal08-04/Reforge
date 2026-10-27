@@ -207,10 +207,10 @@ export default function ModelManagementPage() {
                       {m.status}
                     </span>
                   </td>
-                  <td>{metrics.f1 !== undefined ? metrics.f1.toFixed(3) : "—"}</td>
-                  <td>{metrics.precision !== undefined ? `${(metrics.precision * 100).toFixed(0)}%` : "—"}</td>
-                  <td>{metrics.recall !== undefined ? `${(metrics.recall * 100).toFixed(0)}%` : "—"}</td>
-                  <td>{m.created_at ? new Date(m.created_at).toLocaleDateString() : "—"}</td>
+                  <td>{metrics.f1 !== undefined ? metrics.f1.toFixed(3) : "-"}</td>
+                  <td>{metrics.precision !== undefined ? `${(metrics.precision * 100).toFixed(0)}%` : "-"}</td>
+                  <td>{metrics.recall !== undefined ? `${(metrics.recall * 100).toFixed(0)}%` : "-"}</td>
+                  <td>{m.created_at ? new Date(m.created_at).toLocaleDateString() : "-"}</td>
                   <td>
                     {!isActive ? (
                       <button
