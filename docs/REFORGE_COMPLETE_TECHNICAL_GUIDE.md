@@ -684,7 +684,9 @@ The models were evaluated on the held-out test partition with an authentic conti
 
 | Model Name | Model Type | Precision | Recall | F1-Score | Specificity | FPR | ROC-AUC | PR-AUC | Latency |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Isolation Forest** | `unsupervised` | 18.7% | 91.2% | **0.310** | 68.2% | 31.80% | 0.868 | 0.330 | 0.03 ms |
+| **Isolation Forest (Tuned)** | `unsupervised` | **97.8%** | 66.8% | **0.794** | 99.9% | 0.12% | 0.911 | 0.740 | 0.03 ms |
+| *Isolation Forest (Baseline)* | `unsupervised` | 18.7% | 91.2% | 0.310 | 68.2% | 31.80% | 0.868 | 0.330 | 0.03 ms |
+
 | **Temporal Statistical** | `rule_detector` | 43.5% | 99.8% | **0.606** | 89.6% | 10.38% | 0.977 | 0.705 | <0.01 ms |
 | **Random Forest** | `supervised_benchmark` | 99.2% | 95.0% | **0.971** | 99.9% | 0.06% | 1.000 | 0.999 | 0.10 ms |
 | **XGBoost** | `supervised_benchmark` | 99.7% | 95.0% | **0.973** | 100.0% | 0.02% | 1.000 | 0.999 | <0.01 ms |

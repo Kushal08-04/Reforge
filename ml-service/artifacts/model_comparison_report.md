@@ -9,7 +9,8 @@
 
 | Model Name | Type | Precision | Recall | F1-Score | Specificity | FPR | ROC-AUC | PR-AUC | Latency (ms) | Training Time (s) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Isolation Forest** | `unsupervised` | 18.7% | 91.2% | **0.310** | 68.2% | 31.80% | 0.868 | 0.330 | 0.03 | 1.0s |
+| **Isolation Forest** | `unsupervised` | 97.8% | 66.8% | **0.794** | 99.9% | 0.12% | 0.911 | 0.740 | 0.03 | 1.0s |
+
 | **Temporal Statistical** | `statistical_rule_detector` | 43.5% | 99.8% | **0.606** | 89.6% | 10.38% | 0.977 | 0.705 | 0.00 | 0.0s |
 | **Random Forest** | `supervised_benchmark` | 99.2% | 95.0% | **0.971** | 99.9% | 0.06% | 1.000 | 0.999 | 0.10 | 0.5s |
 | **XGBoost** | `supervised_benchmark` | 99.7% | 95.0% | **0.973** | 100.0% | 0.02% | 1.000 | 0.999 | 0.00 | 1.6s |

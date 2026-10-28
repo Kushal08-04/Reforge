@@ -58,6 +58,7 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - ML_SERVICE_URL=http://ml-service:8000
       - ML_TIMEOUT_MS=${ML_TIMEOUT_MS:-2000}
+      - ML_ACTIVE_MODEL=${ML_ACTIVE_MODEL:-isolation_forest:v2.0.0-iot}
       - LLM_PROVIDER=${LLM_PROVIDER:-mock}
       - GITHUB_REPO=${GITHUB_REPO:-Kushal08-04/Reforge}
       - GITHUB_BASE_BRANCH=${GITHUB_BASE_BRANCH:-main}
@@ -75,12 +76,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
     container_name: reforge-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     environment:
-      - VITE_API_BASE_URL=http://localhost:5000/api
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
     depends_on:
       - server
     networks:

@@ -63,20 +63,20 @@
       "registry_key": "isolation_forest:v2.0.0-iot",
       "type": "unsupervised",
       "threshold": 0.5,
-      "training_time_s": 1.01,
-      "inference_latency_ms": 0.027,
+      "training_time_s": 0.57,
+      "inference_latency_ms": 0.017,
       "metrics": {
-        "tp": 365,
-        "fp": 1590,
-        "tn": 3410,
-        "fn": 35,
-        "precision": 0.1867,
-        "recall": 0.9125,
-        "f1": 0.31,
-        "specificity": 0.682,
-        "fpr": 0.318,
-        "roc_auc": 0.8681,
-        "pr_auc": 0.3302
+        "tp": 267,
+        "fp": 6,
+        "tn": 4994,
+        "fn": 133,
+        "precision": 0.978,
+        "recall": 0.6675,
+        "f1": 0.7935,
+        "specificity": 0.9988,
+        "fpr": 0.0012,
+        "roc_auc": 0.9109,
+        "pr_auc": 0.7403
       }
     },
     {

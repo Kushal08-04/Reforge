@@ -32,8 +32,8 @@ const auditService = require("./auditService");
 
 async function checkDockerAvailable() {
   try {
-    const { stdout } = await execPromise("docker --version", { timeout: 3000 });
-    return Boolean(stdout && stdout.includes("Docker version"));
+    const { stdout } = await execPromise("docker images -q reforge-sandbox", { timeout: 2000 });
+    return Boolean(stdout && stdout.trim().length > 0);
   } catch {
     return false;
   }

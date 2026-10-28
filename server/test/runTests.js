@@ -23,10 +23,12 @@ async function main() {
     await testSandboxExecution();
     await testGitHubIntegration();
     await runDataRepairTests();
+    require("./generic_ingest.test");
 
     console.log("\n========================================");
-    console.log(" ALL 8 TEST SUITES PASSED SUCCESSFULLY!");
+    console.log(" ALL 9 TEST SUITES PASSED SUCCESSFULLY!");
     console.log("========================================\n");
+
     process.exit(0);
   } catch (err) {
     console.error("\nTEST SUITE FAILED:", err);

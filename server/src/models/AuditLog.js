@@ -33,6 +33,7 @@ const AuditLogSchema = new Schema(
         "sandbox_verified",
         "sandbox_failed",
         "pr_created",
+        "dataset_version_updated",
         "model_trained",
         "model_promoted",
         "model_rolled_back",

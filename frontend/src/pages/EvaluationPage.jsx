@@ -4,6 +4,7 @@ import StatCard from "../components/StatCard";
 
 export default function EvaluationPage() {
   const [report, setReport] = useState(null);
+  const [modelsData, setModelsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -12,8 +13,20 @@ export default function EvaluationPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await apiClient.get("/evaluation/latest");
-      setReport(res.data.evaluation);
+      const [evalRes, modelsRes] = await Promise.allSettled([
+        apiClient.get("/evaluation/latest"),
+        apiClient.get("/models"),
+      ]);
+
+      if (evalRes.status === "fulfilled") {
+        setReport(evalRes.value.data.evaluation);
+      } else {
+        console.warn("Could not load latest pipeline evaluation:", evalRes.reason?.message);
+      }
+
+      if (modelsRes.status === "fulfilled") {
+        setModelsData(modelsRes.value.data.mlServiceStatus?.models || []);
+      }
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Failed to load evaluation.");
     } finally {
@@ -202,6 +215,76 @@ export default function EvaluationPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* MULTI-MODEL OFFLINE BENCHMARK REGISTRY TABLE */}
+      {modelsData.length > 0 && (
+        <div className="card" style={{ marginTop: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div>
+              <h2 className="card-title" style={{ margin: 0 }}>Trained Machine Learning Models (Offline Benchmark Comparison)</h2>
+              <p className="muted" style={{ margin: "0.2rem 0 0", fontSize: "0.88rem" }}>
+                Live metrics from the ML model registry evaluated on 5,400 held-out continuous observations (5,000 normal stream records + 400 controlled anomaly injections across 8 failure modes).
+              </p>
+            </div>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Model Name</th>
+                  <th>Version</th>
+                  <th>Algorithm</th>
+                  <th>Status</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1-Score</th>
+                  <th>Specificity</th>
+                  <th>FPR</th>
+                  <th>ROC-AUC</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modelsData.map((m) => {
+                  const metrics = m.metrics?.controlled_eval
+                    ? { ...m.metrics, ...m.metrics.controlled_eval }
+                    : (m.metrics || {});
+                  const isActive = m.status === "active";
+                  return (
+                    <tr key={`${m.model_name}-${m.version}`}>
+                      <td><strong>{m.model_name}</strong></td>
+                      <td><code>{m.version}</code></td>
+                      <td>{m.algorithm}</td>
+                      <td>
+                        <span className={`badge ${isActive ? "badge-success" : m.status === "candidate" ? "badge-warning" : "badge-neutral"}`}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td><strong style={{ color: (metrics.precision || 0) >= 0.91 ? "var(--valid)" : "inherit" }}>{metrics.precision !== undefined ? `${(metrics.precision * 100).toFixed(1)}%` : "—"}</strong></td>
+                      <td>{metrics.recall !== undefined ? `${(metrics.recall * 100).toFixed(1)}%` : "—"}</td>
+                      <td><strong>{metrics.f1 !== undefined ? metrics.f1.toFixed(3) : "—"}</strong></td>
+                      <td>{metrics.specificity !== undefined ? `${(metrics.specificity * 100).toFixed(1)}%` : "—"}</td>
+                      <td>{metrics.fpr !== undefined ? `${(metrics.fpr * 100).toFixed(2)}%` : "—"}</td>
+                      <td>{metrics.roc_auc !== undefined ? metrics.roc_auc.toFixed(3) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!report && !loading && (
+        <div className="card" style={{ marginTop: "1rem", background: "#f8fafc", border: "1px dashed var(--line)" }}>
+          <h3 style={{ margin: "0 0 0.5rem" }}>No Live Pipeline Evaluation Run Recorded</h3>
+          <p className="muted" style={{ margin: "0 0 1rem" }}>
+            The pipeline evaluation benchmark analyzes live observations and compares real-time Rule vs ML vs Hybrid decisions. Click below to execute an evaluation run against current database records.
+          </p>
+          <button className="btn btn-approve" onClick={triggerEvaluationRun} disabled={running}>
+            {running ? "Executing Benchmark..." : "⚡ Execute Pipeline Evaluation Now"}
+          </button>
+        </div>
       )}
     </div>
   );

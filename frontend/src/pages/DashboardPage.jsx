@@ -64,7 +64,7 @@ export default function DashboardPage() {
       <div className="system-banner">
         <div className="system-banner-group">
           <span><strong>Engine Version:</strong> {systemStatus.engineVersion || "v0.2.0-hybrid"}</span>
-          <span><strong>Active ML Model:</strong> <span className="badge badge-info">{systemStatus.activeModel || "isolation_forest:v1.0.0"}</span></span>
+          <span><strong>Active ML Model:</strong> <span className="badge badge-info">{systemStatus.activeModel || "isolation_forest:v2.0.0-iot"}</span></span>
           <span><strong>Decision Mode:</strong> <span className={`badge ${systemStatus.validationMode === "hybrid" ? "badge-success" : "badge-neutral"}`}>{systemStatus.validationMode || "shadow"}</span></span>
         </div>
         <div>

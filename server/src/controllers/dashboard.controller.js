@@ -135,7 +135,7 @@ async function getDashboard(req, res) {
         validationMode: process.env.VALIDATION_MODE || "shadow",
         activeModel: activeModelDoc
           ? `${activeModelDoc.modelName}:${activeModelDoc.version}`
-          : "isolation_forest:v1.0.0",
+          : (process.env.ML_ACTIVE_MODEL ? `${process.env.ML_ACTIVE_MODEL}:v2.0.0-iot` : "isolation_forest:v2.0.0-iot"),
         engineVersion: process.env.SEMANTIC_ENGINE_VERSION || "v0.2.0-hybrid",
       },
       perEntity,

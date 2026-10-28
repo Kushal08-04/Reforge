@@ -195,7 +195,9 @@ export default function ModelManagementPage() {
           </thead>
           <tbody>
             {serviceModels.map((m) => {
-              const metrics = m.metrics || {};
+              const metrics = m.metrics?.controlled_eval
+                ? { ...m.metrics, ...m.metrics.controlled_eval }
+                : (m.metrics || {});
               const isActive = m.status === "active";
               return (
                 <tr key={`${m.model_name}-${m.version}`}>
@@ -208,8 +210,8 @@ export default function ModelManagementPage() {
                     </span>
                   </td>
                   <td>{metrics.f1 !== undefined ? metrics.f1.toFixed(3) : "—"}</td>
-                  <td>{metrics.precision !== undefined ? `${(metrics.precision * 100).toFixed(0)}%` : "—"}</td>
-                  <td>{metrics.recall !== undefined ? `${(metrics.recall * 100).toFixed(0)}%` : "—"}</td>
+                  <td>{metrics.precision !== undefined ? `${(metrics.precision * 100).toFixed(1)}%` : "—"}</td>
+                  <td>{metrics.recall !== undefined ? `${(metrics.recall * 100).toFixed(1)}%` : "—"}</td>
                   <td>{m.created_at ? new Date(m.created_at).toLocaleDateString() : "—"}</td>
                   <td>
                     {!isActive ? (

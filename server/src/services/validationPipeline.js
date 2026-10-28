@@ -1,5 +1,5 @@
 const { RawObservation, ValidationResult, QuarantineRecord } = require("../models");
-const { validateSchema } = require("./schemaValidator");
+const { validateSchema, ensureGenericEnvelope } = require("./schemaValidator");
 const { buildFeatures } = require("./featureBuilder");
 const { evaluateRules } = require("./ruleEngine");
 const { scoreAndClassify } = require("./scoringEngine");
@@ -21,14 +21,17 @@ const { logAudit } = require("./auditService");
  *   7. Routing to quarantine for human review
  *   8. Complete append-only audit trail
  */
-async function runPipeline(payload) {
-  const parsedDate = payload && payload.timestamp ? new Date(payload.timestamp) : null;
-  const isValidDate = parsedDate instanceof Date && !isNaN(parsedDate.getTime());
-  const timestamp = isValidDate ? parsedDate : new Date();
-  const timeString = isValidDate ? parsedDate.toISOString() : `invalid-time-${Date.now()}`;
+async function runPipeline(rawInput) {
+  const payload = ensureGenericEnvelope(rawInput);
+  const parsedDate = payload.timestamp instanceof Date && !isNaN(payload.timestamp.getTime())
+    ? payload.timestamp
+    : new Date();
+  const timestamp = parsedDate;
+  const timeString = parsedDate.toISOString();
   const ingestKey =
-    (payload && payload.ingestKey) ||
-    `${(payload && payload.sourceId) || "unknown"}:${(payload && payload.entityId) || "unknown"}:${timeString}`;
+    payload.ingestKey ||
+    `${payload.sourceId}:${payload.entityId}:${timeString}`;
+
 
   // ---- Step 1-2: preserve raw observation (idempotent on ingestKey) ----
   let rawObservation = await RawObservation.findOne({ ingestKey });
@@ -96,9 +99,21 @@ async function runPipeline(payload) {
     status: "skipped",
   };
 
-  if (!schemaValid) {
+  if (!schemaValid || payload.values?.value === null || payload.values?.value === undefined || isNaN(payload.values?.value)) {
     ruleClassification = "invalid";
+    ruleRiskScore = 1.0;
+    evidence = [
+      {
+        ruleId: "missing_or_corrupted_measurement",
+        category: "format",
+        weight: 1.0,
+        severity: "critical",
+        passed: false,
+        message: "Observation is missing a valid numeric measurement and requires self-healing.",
+      },
+    ];
   } else {
+
     // ---- Step 5: semantic feature construction ----
     const numericValue = payload.values.value;
     features = await buildFeatures({

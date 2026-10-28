@@ -235,17 +235,22 @@ export default function QuarantinePage() {
                     <td><strong>{formatScore(r.semanticRiskScore ?? r.ruleRiskScore)}</strong></td>
                     <td><span className="badge badge-neutral">{r.reviewStatus}</span></td>
                     <td style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                      <Link
+                        to={`/quarantine/${r._id}`}
+                        className="btn btn-neutral"
+                        style={{ padding: "0.25rem 0.65rem", fontSize: "0.82rem", fontWeight: "600", textDecoration: "none" }}
+                        title="Review observation details, why it was flagged, and recommended healing options"
+                      >
+                        🔍 Review & Heal
+                      </Link>
                       <button
                         className="btn btn-neutral"
                         style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}
                         onClick={() => handleHeal({ recordId: r._id })}
                         disabled={healingTier !== null}
                       >
-                        {healingTier === r._id ? "Healing..." : "Heal in Sandbox"}
+                        {healingTier === r._id ? "Healing..." : "⚡ Quick Heal"}
                       </button>
-                      <Link to={`/quarantine/${r._id}`} className="link-small">
-                        Inspect
-                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -305,17 +310,22 @@ export default function QuarantinePage() {
                     <td><span style={{ color: "var(--invalid)", fontWeight: "bold" }}>{formatScore(r.semanticRiskScore ?? r.ruleRiskScore)}</span></td>
                     <td><span className="badge badge-danger">{r.reviewStatus}</span></td>
                     <td style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                      <Link
+                        to={`/quarantine/${r._id}`}
+                        className="btn btn-neutral"
+                        style={{ padding: "0.25rem 0.65rem", fontSize: "0.82rem", fontWeight: "600", textDecoration: "none" }}
+                        title="Review observation details, why it was flagged, and recommended healing options"
+                      >
+                        🔍 Review & Heal
+                      </Link>
                       <button
                         className="btn btn-approve"
                         style={{ padding: "0.25rem 0.6rem", fontSize: "0.8rem" }}
                         onClick={() => handleHeal({ recordId: r._id })}
                         disabled={healingTier !== null}
                       >
-                        {healingTier === r._id ? "Healing..." : "Heal in Sandbox"}
+                        {healingTier === r._id ? "Healing..." : "⚡ Heal in Sandbox"}
                       </button>
-                      <Link to={`/quarantine/${r._id}`} className="link-small">
-                        Inspect
-                      </Link>
                     </td>
                   </tr>
                 ))}

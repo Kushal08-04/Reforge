@@ -33,16 +33,17 @@ async function listQuarantine(req, res) {
 /**
  * GET /api/quarantine/:id
  * Full context for the review screen (Section 8): original value, timestamp,
- * source/sensor, recent history, evidence, and available actions.
+ * source/sensor, recent history, evidence, diagnostic reasoning, recommended healing options.
  */
 async function getQuarantineDetail(req, res) {
   try {
+    const dataRepairService = require("../services/dataRepairService");
     const record = await QuarantineRecord.findById(req.params.id).lean();
     if (!record) {
       return res.status(404).json({ error: "Quarantine record not found." });
     }
 
-    const [rawObservation, validationResult, recentHistory] = await Promise.all([
+    const [rawObservation, validationResult, recentHistory, predecessor, successor, peers] = await Promise.all([
       RawObservation.findById(record.rawObservationId).lean(),
       ValidationResult.findById(record.validationResultId).lean(),
       RawObservation.find({
@@ -52,14 +53,126 @@ async function getQuarantineDetail(req, res) {
         .sort({ timestamp: -1 })
         .limit(10)
         .lean(),
+      RawObservation.findOne({
+        entityId: record.entityId,
+        timestamp: { $lt: record.timestamp },
+      })
+        .sort({ timestamp: -1 })
+        .lean(),
+      RawObservation.findOne({
+        entityId: record.entityId,
+        timestamp: { $gt: record.timestamp },
+      })
+        .sort({ timestamp: 1 })
+        .lean(),
+      RawObservation.find({
+        entityId: { $ne: record.entityId },
+        timestamp: {
+          $gte: new Date(new Date(record.timestamp).getTime() - 60000),
+          $lte: new Date(new Date(record.timestamp).getTime() + 60000),
+        },
+      })
+        .limit(20)
+        .lean(),
     ]);
+
+    // 1. Defensively synthesize effective raw observation if missing or partial
+    let effectiveRawObs = rawObservation;
+    if (!effectiveRawObs) {
+      effectiveRawObs = {
+        _id: record.rawObservationId || record._id,
+        entityId: record.entityId || "generic-sensor",
+        timestamp: record.timestamp || new Date(),
+        values: { value: record.rawReading ?? 0 },
+        sourceId: "quarantined-stream",
+        sourceType: "sensor",
+      };
+    }
+    const resolvedNumericVal = dataRepairService.extractNumericValue(effectiveRawObs);
+    if (resolvedNumericVal !== undefined && effectiveRawObs.values) {
+      effectiveRawObs.values.value = resolvedNumericVal;
+    }
+
+    // 2. Defensively synthesize effective validation result if missing or partial
+    let effectiveValResult = validationResult;
+    if (!effectiveValResult) {
+      effectiveValResult = {
+        _id: record.validationResultId || record._id,
+        rawObservationId: effectiveRawObs._id,
+        classification: record.classification || "suspicious",
+        ruleClassification: record.classification || "suspicious",
+        ruleRiskScore: record.ruleRiskScore ?? record.semanticRiskScore ?? 0.5,
+        semanticRiskScore: record.semanticRiskScore ?? record.ruleRiskScore ?? 0.5,
+        mlResult: { anomalyScore: record.mlAnomalyScore ?? 0.5, isAnomaly: true },
+        comparisonCategory: record.comparisonCategory || "n/a",
+        schemaValid: true,
+        schemaErrors: [],
+        evidence: [],
+        disagreementReason: "Observation was quarantined during ETL validation.",
+      };
+    }
+
+    // 3. Resolve sensor modality and canonical physical boundaries
+    const sensorType = dataRepairService.resolveSensorType(record.entityId, effectiveRawObs);
+    const bounds = dataRepairService.PHYSICAL_SENSOR_BOUNDS[sensorType] || dataRepairService.PHYSICAL_SENSOR_BOUNDS.temperature;
+
+    // 4. Synthesize diagnostic report (Why was this flagged?)
+    const numVal = resolvedNumericVal !== undefined ? resolvedNumericVal : 0;
+    const isOutOfBounds = numVal < bounds.min || numVal > bounds.max;
+    const ruleRisk = effectiveValResult.ruleRiskScore ?? 0;
+    const mlScore = effectiveValResult.mlResult?.anomalyScore ?? record.mlAnomalyScore ?? 0;
+
+    let primaryReason = "Flagged by hybrid validation engine for quality review.";
+    if (isOutOfBounds) {
+      primaryReason = `Critical Physical Domain Violation: Value (${numVal} ${bounds.unit}) exceeds canonical physical boundaries [${bounds.min}, ${bounds.max}] ${bounds.unit}.`;
+    } else if (ruleRisk >= 0.60) {
+      primaryReason = `High Rule-Based Risk (Score: ${ruleRisk.toFixed(2)}): Sensor observation triggered critical deterministic validation constraints.`;
+    } else if (mlScore >= 0.50 && ruleRisk < 0.30) {
+      primaryReason = `ML Isolation Forest Outlier (Anomaly Score: ${mlScore.toFixed(2)} > 0.50): Flagged as statistical outlier based on multidimensional feature partition.`;
+    } else if (effectiveValResult.comparisonCategory === "rule_anomaly_ml_anomaly") {
+      primaryReason = `Consensus Anomaly: Both Rule-based engine (${ruleRisk.toFixed(2)}) and Isolation Forest (${mlScore.toFixed(2)}) identified anomalous sensor behavior.`;
+    } else if (ruleRisk >= 0.30) {
+      primaryReason = `Suspicious Reading: Observation exhibits temporal drift or rate-of-change irregularity requiring sandbox verification.`;
+    }
+
+    const diagnosticReport = {
+      primaryReason,
+      sensorType,
+      bounds,
+      observedValue: numVal,
+      isOutOfBounds,
+      ruleRiskScore: ruleRisk,
+      mlAnomalyScore: mlScore,
+      comparisonCategory: effectiveValResult.comparisonCategory,
+      disagreementReason: effectiveValResult.disagreementReason,
+      schemaValid: effectiveValResult.schemaValid !== false,
+      schemaErrors: effectiveValResult.schemaErrors || [],
+      triggeredRules: (effectiveValResult.evidence || []).filter((e) => e.triggered),
+      clearRules: (effectiveValResult.evidence || []).filter((e) => !e.triggered),
+    };
+
+    // 5. Generate recommended healing options
+    let healingRecommendations = null;
+    try {
+      healingRecommendations = await dataRepairService.getRecommendedHealingOptions({
+        rawObservation: effectiveRawObs,
+        validationResult: effectiveValResult,
+        history: recentHistory || [],
+        predecessor,
+        successor,
+        peers: peers || [],
+      });
+    } catch (healErr) {
+      console.warn("[REFORGE] Failed to compute recommendations:", healErr.message);
+    }
 
     res.json({
       quarantineRecord: record,
-      rawObservation,
-      validationResult,
-      // oldest-first for easy charting on the frontend
-      recentHistory: recentHistory.reverse(),
+      rawObservation: effectiveRawObs,
+      validationResult: effectiveValResult,
+      recentHistory: recentHistory ? recentHistory.reverse() : [],
+      diagnosticReport,
+      healingRecommendations,
     });
   } catch (err) {
     console.error("[REFORGE] getQuarantineDetail error:", err);
@@ -142,7 +255,15 @@ async function reviewQuarantine(req, res) {
  */
 async function healQuarantineRecords(req, res) {
   try {
-    const { tier, recordIds, quarantineRecordId, reviewer = "lead-data-engineer" } = req.body;
+    const {
+      tier,
+      recordIds,
+      quarantineRecordId,
+      reviewer = "lead-data-engineer",
+      strategy,
+      targetStrategy,
+      preferredValue,
+    } = req.body;
     const dataRepairService = require("../services/dataRepairService");
 
     let targetIds = [];
@@ -198,6 +319,8 @@ async function healQuarantineRecords(req, res) {
         const healResult = await dataRepairService.healObservationInSandbox({
           quarantineRecordId: qId,
           actor: reviewer,
+          targetStrategy: strategy || targetStrategy,
+          preferredValue: typeof preferredValue === "number" ? preferredValue : (preferredValue ? Number(preferredValue) : null),
         });
         results.push(healResult);
         successCount++;

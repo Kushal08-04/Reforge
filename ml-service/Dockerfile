@@ -9,8 +9,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
+COPY artifacts/ ./artifacts/
 COPY test_service.py .
-RUN mkdir -p artifacts
 
 EXPOSE 8000
 
